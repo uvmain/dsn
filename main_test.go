@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"dsn/core/api"
 	"dsn/core/database"
+	"dsn/core/handlers"
 	"dsn/core/services"
 	"dsn/core/types"
 )
@@ -30,12 +30,12 @@ func setupTestServer(t *testing.T) (*httptest.Server, func()) {
 	mux := http.NewServeMux()
 
 	// Auth routes
-	mux.HandleFunc("POST /api/register", api.RegisterHandler(userService, authService))
-	mux.HandleFunc("POST /api/login", api.LoginHandler(userService, authService))
+	mux.HandleFunc("POST /api/register", handlers.RegisterHandler(userService, authService))
+	mux.HandleFunc("POST /api/login", handlers.LoginHandler(userService, authService))
 
 	// Protected routes
-	mux.Handle("POST /api/notes", api.AuthMiddleware(authService)(http.HandlerFunc(api.CreateNoteHandler(noteService))))
-	mux.Handle("GET /api/notes", api.AuthMiddleware(authService)(http.HandlerFunc(api.GetNotesHandler(noteService))))
+	mux.Handle("POST /api/notes", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.CreateNoteHandler(noteService))))
+	mux.Handle("GET /api/notes", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.GetNotesHandler(noteService))))
 
 	server := httptest.NewServer(mux)
 

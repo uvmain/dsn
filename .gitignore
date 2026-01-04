@@ -1,2 +1,8 @@
 data
 node_modules
+frontend/node_modules
+frontend/dist
+dsn
+dsn.exe
+tmp
+.DS_Store

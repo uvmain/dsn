@@ -1,0 +1,87 @@
+<script setup lang="ts">
+interface Note {
+  id: number
+  title: string
+  content: string
+  color: string
+  pinned: boolean
+  archived: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface Props {
+  note: Note
+}
+
+interface Emits {
+  edit: [note: Note]
+  delete: [note: Note]
+}
+
+defineProps<Props>()
+defineEmits<Emits>()
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+  })
+}
+</script>
+
+<template>
+  <div
+    class="cursor-pointer border rounded-lg bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+    :style="{ backgroundColor: note.color }"
+    @click="$emit('edit', note)"
+  >
+    <div class="mb-2 flex items-start justify-between">
+      <h3 v-if="note.title" class="line-clamp-2 text-gray-800 font-semibold">
+        {{ note.title }}
+      </h3>
+      <div class="ml-2 flex space-x-1">
+        <button
+          v-if="note.pinned"
+          class="icon-btn text-yellow-500"
+          title="Pinned"
+        >
+          <i class="i-heroicons-bookmark-solid h-4 w-4"></i>
+        </button>
+        <button
+          class="icon-btn hover:text-red-500"
+          title="Delete"
+          @click.stop="$emit('delete', note)"
+        >
+          <i class="i-heroicons-trash h-4 w-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <p v-if="note.content" class="line-clamp-4 mb-3 text-sm text-gray-700">
+      {{ note.content }}
+    </p>
+
+    <div class="text-xs text-gray-500">
+      {{ formatDate(note.updated_at) }}
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

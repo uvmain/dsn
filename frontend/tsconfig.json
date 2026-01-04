@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "es2022",
+    "lib": ["es2023", "esnext", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": true,
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "~/*": ["src/*"]
+    },
+    "resolveJsonModule": true,
+    "types": [
+      "node",
+      "vite/client"
+    ],
+    "strict": true,
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "vite.config.*",
+    "uno.config.ts",
+    "components.d.ts",
+    "auto-imports.d.ts",
+    "src/**/*",
+    "src/**/*.vue"
+  ],
+  "exclude": ["node_modules", "dist", "eslint.config.mjs"]
+}
