@@ -1,0 +1,36 @@
+version: '3'
+
+vars:
+  BINARY_NAME: dsn
+
+tasks:
+  default:
+    deps: [deps, build]
+    desc: Install dependencies and build
+
+  deps:
+    desc: Install Go dependencies
+    cmds:
+      - go mod tidy
+      - go mod download
+
+  build:
+    desc: Build the application
+    cmds:
+      - go build -o {{.BINARY_NAME}} .
+
+  run:
+    desc: Run the application
+    cmds:
+      - go run .
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f dsn
+      - rm -f coverage.out coverage.html
+
+  dev:
+    desc: Run development server with air
+    cmds:
+      - air
