@@ -182,6 +182,59 @@ function onDragEnd() {
   document.querySelectorAll('.note-card').forEach((card) => {
     card.classList.remove('drag-over')
   })
+  document.querySelectorAll('.notes-grid').forEach((grid) => {
+    grid.classList.remove('drag-over-grid')
+  })
+}
+
+function onDragOverGrid(event: DragEvent, targetIsPinned: boolean) {
+  // Only allow dropping if we're dragging a note and it's not already in this section
+  if (!draggedNote.value || draggedNote.value.pinned === targetIsPinned) {
+    return
+  }
+
+  event.preventDefault()
+  event.dataTransfer!.dropEffect = 'move'
+
+  // Add visual feedback to the grid
+  const grid = event.currentTarget as HTMLElement
+  grid.classList.add('drag-over-grid')
+}
+
+function onDragLeaveGrid(event: DragEvent) {
+  // Remove visual feedback when leaving the grid
+  const grid = event.currentTarget as HTMLElement
+  const relatedTarget = event.relatedTarget as HTMLElement
+
+  // Only remove the class if we're actually leaving the grid (not just moving to a child element)
+  if (!grid.contains(relatedTarget)) {
+    grid.classList.remove('drag-over-grid')
+  }
+}
+
+async function onDropOnGrid(event: DragEvent, targetIsPinned: boolean) {
+  event.preventDefault()
+
+  if (!draggedNote.value) {
+    return
+  }
+
+  const draggedIsPinned = draggedNote.value.pinned
+
+  // If dropping in a different section, toggle the pin status
+  if (draggedIsPinned !== targetIsPinned) {
+    try {
+      await api.togglePin(draggedNote.value.id, { pinned: targetIsPinned })
+      // Reload notes to update sections
+      await loadNotes()
+    }
+    catch (err) {
+      console.error('Failed to toggle pin:', err)
+      error.value = 'Failed to toggle pin status. Please try again.'
+    }
+  }
+
+  draggedNote.value = null
 }
 
 function createNote() {
@@ -412,7 +465,12 @@ useHead({
           <h2 class="mb-4 text-lg text-gray-700 font-semibold">
             Pinned
           </h2>
-          <div class="notes-grid">
+          <div
+            class="notes-grid"
+            @dragover="onDragOverGrid($event, true)"
+            @dragleave="onDragLeaveGrid($event)"
+            @drop="onDropOnGrid($event, true)"
+          >
             <NoteCard
               v-for="note in pinnedNotes"
               :key="note.id"
@@ -438,7 +496,12 @@ useHead({
           <h2 v-if="pinnedNotes.length > 0" class="mb-4 text-lg text-gray-700 font-semibold">
             Other notes
           </h2>
-          <div class="notes-grid">
+          <div
+            class="notes-grid"
+            @dragover="onDragOverGrid($event, false)"
+            @dragleave="onDragLeaveGrid($event)"
+            @drop="onDropOnGrid($event, false)"
+          >
             <NoteCard
               v-for="note in otherNotes"
               :key="note.id"
@@ -500,5 +563,18 @@ useHead({
 
 .note-card[draggable="true"]:active {
   transform: rotate(1deg);
+}
+
+.notes-grid {
+  position: relative;
+  min-height: 120px;
+}
+
+.notes-grid.drag-over-grid {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: -1rem;
 }
 </style>
