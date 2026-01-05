@@ -132,9 +132,14 @@ onMounted(() => {
               v-for="color in colors"
               :key="color.value"
               type="button"
-              class="h-8 w-8 border-2 border-gray-300 rounded-full hover:border-gray-400"
-              :class="{ 'ring-2 ring-primary-500': form.color === color.value }"
-              :style="{ backgroundColor: color.value }"
+              class="h-8 w-8 border-2 rounded-full transition-transform hover:scale-110"
+              :class="{
+                'border-gray-300': form.color !== color.value,
+                'border-primary-500 ring-2 ring-primary-500': form.color === color.value,
+                'bg-white shadow-inner': color.value === '#ffffff',
+              }"
+              :style="{ backgroundColor: color.value !== '#ffffff' ? color.value : undefined }"
+              :title="color.name"
               @click="form.color = color.value"
             >
               <i

@@ -271,11 +271,11 @@ useHead({
 
 <template>
   <div class="notes-page">
-    <div class="mb-6 flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-      <h1 class="text-2xl font-bold text-gray-800 sm:text-3xl">
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <h1 class="text-2xl text-gray-800 font-bold sm:text-3xl">
         My Notes
       </h1>
-      <button class="btn btn-primary self-start sm:self-auto">
+      <button class="btn-primary btn self-start sm:self-auto">
         <i class="i-heroicons-plus mr-2 h-4 w-4"></i>
         New Note
       </button>
@@ -284,14 +284,14 @@ useHead({
     <!-- Search Bar -->
     <div class="mb-6">
       <div class="relative max-w-md">
-        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
           <i class="i-heroicons-magnifying-glass h-5 w-5 text-gray-400"></i>
         </div>
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search notes..."
-          class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+          class="w-full border border-gray-300 rounded-lg py-2 pl-10 pr-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           @keyup.enter="performSearch"
         >
         <button
@@ -310,7 +310,7 @@ useHead({
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
       <div class="text-center">
-        <div class="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600 mx-auto"></div>
+        <div class="mx-auto mb-4 h-8 w-8 animate-spin border-4 border-primary-200 border-t-primary-600 rounded-full"></div>
         <div class="text-gray-500">
           Loading notes...
         </div>
@@ -318,30 +318,32 @@ useHead({
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+    <div v-else-if="error" class="border border-red-200 rounded-lg bg-red-50 p-6 text-center">
       <div class="mb-4 text-red-600">
-        <i class="i-heroicons-exclamation-triangle h-12 w-12 mx-auto mb-2"></i>
-        <div class="text-lg font-medium">Error Loading Notes</div>
+        <i class="i-heroicons-exclamation-triangle mx-auto mb-2 h-12 w-12"></i>
+        <div class="text-lg font-medium">
+          Error Loading Notes
+        </div>
       </div>
       <div class="mb-4 text-red-700">
         {{ error }}
       </div>
-      <button class="btn btn-primary" @click="loadNotes">
+      <button class="btn-primary btn" @click="loadNotes">
         Try Again
       </button>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="notes.length === 0" class="text-center py-12">
+    <div v-else-if="notes && notes.length === 0" class="py-12 text-center">
       <div class="mb-6">
-        <i class="i-heroicons-document-text h-16 w-16 text-gray-300 mx-auto mb-4"></i>
-        <h3 class="text-xl font-medium text-gray-900 mb-2">
+        <i class="i-heroicons-document-text mx-auto mb-4 h-16 w-16 text-gray-300"></i>
+        <h3 class="mb-2 text-xl text-gray-900 font-medium">
           No notes yet
         </h3>
-        <p class="text-gray-500 mb-6 max-w-sm mx-auto">
+        <p class="mx-auto mb-6 max-w-sm text-gray-500">
           Create your first note to get started organizing your thoughts and ideas.
         </p>
-        <button class="btn btn-primary btn-lg" @click="createNote">
+        <button class="btn-primary btn-lg btn" @click="createNote">
           <i class="i-heroicons-plus mr-2 h-5 w-5"></i>
           Create Your First Note
         </button>
@@ -379,18 +381,18 @@ useHead({
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-        <div class="mb-4 text-lg font-semibold text-gray-900">
+      <div class="max-w-sm w-full rounded-lg bg-white p-6 shadow-xl">
+        <div class="mb-4 text-lg text-gray-900 font-semibold">
           Delete Note
         </div>
         <div class="mb-6 text-gray-700">
           Are you sure you want to delete this note? This action cannot be undone.
         </div>
         <div class="flex justify-end gap-3">
-          <button class="btn btn-secondary" @click="cancelDeleteNote">
+          <button class="btn-secondary btn" @click="cancelDeleteNote">
             Cancel
           </button>
-          <button class="btn btn-danger" @click="confirmDeleteNote">
+          <button class="btn-danger btn" @click="confirmDeleteNote">
             Delete
           </button>
         </div>

@@ -91,7 +91,7 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 	}
 	defer rows.Close()
 
-	var notes []types.Note
+	notes := make([]types.Note, 0)
 	for rows.Next() {
 		var note types.Note
 		err := rows.Scan(
@@ -234,7 +234,7 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 	}
 	defer rows.Close()
 
-	var notes []types.Note
+	notes := make([]types.Note, 0)
 	for rows.Next() {
 		var note types.Note
 		err := rows.Scan(
@@ -322,7 +322,7 @@ func (s *NoteService) getNoteTags(noteID int) ([]types.Tag, error) {
 	}
 	defer rows.Close()
 
-	var tags []types.Tag
+	tags := make([]types.Tag, 0)
 	for rows.Next() {
 		var tag types.Tag
 		err := rows.Scan(&tag.ID, &tag.Name, &tag.Color, &tag.CreatedAt)

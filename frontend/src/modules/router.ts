@@ -1,6 +1,12 @@
 import type { UserModule } from '~/types'
 
 export const install: UserModule = ({ router }) => {
+  // Check authentication status on app initialization
+  const userStore = useUserStore()
+  userStore.checkAuth().catch(() => {
+    void router.push('/login')
+  })
+
   router.beforeEach((to, from, next) => {
     const userStore = useUserStore()
 

@@ -50,6 +50,19 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function checkAuth() {
+    try {
+      const userData = await api.checkAuth()
+      setUser(userData)
+      return userData
+    }
+    catch (error) {
+      // User is not authenticated, clear any stale data
+      clearUser()
+      throw error
+    }
+  }
+
   return {
     user: readonly(user),
     isAuthenticated,
@@ -59,5 +72,6 @@ export const useUserStore = defineStore('user', () => {
     register,
     login,
     logout,
+    checkAuth,
   }
 })

@@ -30,6 +30,7 @@ func main() {
 	mux.HandleFunc("POST /api/register", handlers.RegisterHandler(userService, authService))
 	mux.HandleFunc("POST /api/login", handlers.LoginHandler(userService, authService))
 	mux.HandleFunc("POST /api/logout", handlers.LogoutHandler())
+	mux.Handle("GET /api/auth/check", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.CheckAuthHandler(userService))))
 
 	// api routes
 	mux.Handle("GET /api/notes", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.GetNotesHandler(noteService))))

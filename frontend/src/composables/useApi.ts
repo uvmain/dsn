@@ -44,6 +44,10 @@ class ApiClient {
     })
   }
 
+  async checkAuth(): Promise<User> {
+    return this.request<User>('/auth/check')
+  }
+
   // Note endpoints
   async getNotes(): Promise<Note[]> {
     return this.request<Note[]>('/notes')

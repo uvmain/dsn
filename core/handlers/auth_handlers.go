@@ -99,3 +99,23 @@ func LogoutHandler() http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
 	}
 }
+
+// CheckAuthHandler handles checking if user is authenticated
+func CheckAuthHandler(userService *services.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := getUserIDFromRequest(r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		user, err := userService.GetByID(userID)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(user)
+	}
+}
