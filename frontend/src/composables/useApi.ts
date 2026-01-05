@@ -20,6 +20,10 @@ class ApiClient {
       throw new Error(`API Error: ${response.status} ${response.statusText}`)
     }
 
+    if (response.status === 204) {
+      return undefined as T
+    }
+
     return response.json()
   }
 
@@ -68,8 +72,8 @@ class ApiClient {
     })
   }
 
-  async updateNote(id: number, data: UpdateNoteRequest): Promise<Note> {
-    return this.request<Note>(`/notes/${id}`, {
+  async updateNote(id: number, data: UpdateNoteRequest): Promise<Note | undefined> {
+    return this.request<Note | undefined>(`/notes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })

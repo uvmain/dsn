@@ -212,9 +212,11 @@ async function saveNote(noteData: { title: string, content: string, color: strin
         content: noteData.content,
         color: noteData.color,
       })
-      const index = notes.value.findIndex(n => n.id === selectedNote.value!.id)
-      if (index !== -1) {
-        notes.value[index] = updatedNote
+      if (updatedNote) {
+        const index = notes.value.findIndex(n => n.id === selectedNote.value!.id)
+        if (index !== -1) {
+          notes.value[index] = updatedNote
+        }
       }
 
       // Update tags if provided
@@ -275,8 +277,8 @@ useHead({
       <h1 class="text-2xl text-gray-800 font-bold sm:text-3xl">
         My Notes
       </h1>
-      <button class="btn-primary btn self-start sm:self-auto">
-        <i class="i-heroicons-plus mr-2 h-4 w-4"></i>
+      <button class="btn flex flex-row items-center" @click="createNote">
+        <icon-heroicons-plus class="mr-2 h-4 w-4" />
         New Note
       </button>
     </div>
@@ -285,7 +287,7 @@ useHead({
     <div class="mb-6">
       <div class="relative max-w-md">
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <i class="i-heroicons-magnifying-glass h-5 w-5 text-gray-400"></i>
+          <icon-heroicons-magnifying-glass class="h-5 w-5 text-gray-400" />
         </div>
         <input
           v-model="searchQuery"
@@ -299,7 +301,7 @@ useHead({
           class="absolute inset-y-0 right-0 flex items-center pr-3"
           @click="clearSearch"
         >
-          <i class="i-heroicons-x-mark h-5 w-5 text-gray-400 hover:text-gray-600"></i>
+          <icon-heroicons-x-mark class="h-5 w-5 text-gray-400 hover:text-gray-600" />
         </button>
       </div>
       <div v-if="isSearching" class="mt-2 text-sm text-gray-600">
@@ -320,7 +322,7 @@ useHead({
     <!-- Error State -->
     <div v-else-if="error" class="border border-red-200 rounded-lg bg-red-50 p-6 text-center">
       <div class="mb-4 text-red-600">
-        <i class="i-heroicons-exclamation-triangle mx-auto mb-2 h-12 w-12"></i>
+        <icon-heroicons-exclamation-triangle class="mx-auto mb-2 h-12 w-12" />
         <div class="text-lg font-medium">
           Error Loading Notes
         </div>
@@ -328,7 +330,7 @@ useHead({
       <div class="mb-4 text-red-700">
         {{ error }}
       </div>
-      <button class="btn-primary btn" @click="loadNotes">
+      <button class="btn" @click="loadNotes">
         Try Again
       </button>
     </div>
@@ -336,15 +338,15 @@ useHead({
     <!-- Empty State -->
     <div v-else-if="notes && notes.length === 0" class="py-12 text-center">
       <div class="mb-6">
-        <i class="i-heroicons-document-text mx-auto mb-4 h-16 w-16 text-gray-300"></i>
+        <icon-heroicons-document-text class="mx-auto mb-4 h-16 w-16 text-gray-300" />
         <h3 class="mb-2 text-xl text-gray-900 font-medium">
           No notes yet
         </h3>
         <p class="mx-auto mb-6 max-w-sm text-gray-500">
           Create your first note to get started organizing your thoughts and ideas.
         </p>
-        <button class="btn-primary btn-lg btn" @click="createNote">
-          <i class="i-heroicons-plus mr-2 h-5 w-5"></i>
+        <button class="btn" @click="createNote">
+          <icon-heroicons-plus class="mr-2 h-5 w-5" />
           Create Your First Note
         </button>
       </div>

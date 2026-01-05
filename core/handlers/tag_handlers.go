@@ -18,6 +18,7 @@ func GetTagsHandler(tagService *services.TagService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(tags)
 	}
 }
@@ -71,6 +72,7 @@ func UpdateTagHandler(tagService *services.TagService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(tag)
 	}
 }

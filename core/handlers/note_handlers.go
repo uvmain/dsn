@@ -25,6 +25,7 @@ func GetNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(notes)
 	}
 }
@@ -78,6 +79,7 @@ func GetNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(note)
 	}
 }
@@ -110,6 +112,7 @@ func UpdateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(note)
 	}
 }
@@ -161,6 +164,7 @@ func SearchNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(notes)
 	}
 }
@@ -193,6 +197,7 @@ func TogglePinHandler(noteService *services.NoteService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(note)
 	}
 }
@@ -225,6 +230,7 @@ func ToggleArchiveHandler(noteService *services.NoteService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(note)
 	}
 }

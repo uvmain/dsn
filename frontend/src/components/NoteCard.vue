@@ -35,28 +35,29 @@ function formatDate(dateString: string) {
       <h3 v-if="note.title" class="line-clamp-2 text-gray-800 font-semibold">
         {{ note.title }}
       </h3>
-      <div class="ml-2 flex space-x-1">
+      <div class="w-2" />
+      <div class="ml-auto flex space-x-1">
         <button
           class="icon-btn hover:text-yellow-500"
           :class="{ 'text-yellow-500': note.pinned }"
           title="Toggle pin"
           @click.stop="$emit('togglePin', note)"
         >
-          <i class="i-heroicons-bookmark-solid h-4 w-4"></i>
+          <icon-heroicons-bookmark-solid class="h-4 w-4" />
         </button>
         <button
           class="icon-btn hover:text-gray-500"
           title="Toggle archive"
           @click.stop="$emit('toggleArchive', note)"
         >
-          <i class="i-heroicons-archive-box h-4 w-4"></i>
+          <icon-heroicons-archive-box class="h-4 w-4" />
         </button>
         <button
           class="icon-btn hover:text-red-500"
           title="Delete"
           @click.stop="$emit('delete', note)"
         >
-          <i class="i-heroicons-trash h-4 w-4"></i>
+          <icon-heroicons-trash class="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -100,7 +100,7 @@ onMounted(() => {
           class="icon-btn"
           @click="$emit('close')"
         >
-          <i class="i-heroicons-x-mark h-5 w-5"></i>
+          <icon-heroicons-x-mark class="h-5 w-5" />
         </button>
       </div>
 
@@ -168,7 +168,7 @@ onMounted(() => {
                   class="ml-1 rounded-full p-0.5 hover:bg-black hover:bg-opacity-20"
                   @click="toggleTag(tagId)"
                 >
-                  <i class="i-heroicons-x-mark h-3 w-3"></i>
+                  <icon-heroicons-x-mark class="h-3 w-3" />
                 </button>
               </span>
             </div>

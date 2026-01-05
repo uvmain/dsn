@@ -40,6 +40,7 @@ func RegisterHandler(userService *services.UserService, authService *services.Au
 		authService.SetAuthCookie(w, token)
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(user)
 	}
 }
@@ -77,6 +78,7 @@ func LoginHandler(userService *services.UserService, authService *services.AuthS
 		authService.SetAuthCookie(w, token)
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(user)
 	}
 }
@@ -116,6 +118,7 @@ func CheckAuthHandler(userService *services.UserService) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(user)
 	}
 }

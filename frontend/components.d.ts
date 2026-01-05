@@ -11,6 +11,14 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    IconHeroiconsArchiveBox: typeof import('~icons/heroicons/archive-box')['default']
+    IconHeroiconsBookmarkSolid: typeof import('~icons/heroicons/bookmark-solid')['default']
+    IconHeroiconsDocumentText: typeof import('~icons/heroicons/document-text')['default']
+    IconHeroiconsExclamationTriangle: typeof import('~icons/heroicons/exclamation-triangle')['default']
+    IconHeroiconsMagnifyingGlass: typeof import('~icons/heroicons/magnifying-glass')['default']
+    IconHeroiconsPlus: typeof import('~icons/heroicons/plus')['default']
+    IconHeroiconsTrash: typeof import('~icons/heroicons/trash')['default']
+    IconHeroiconsXMark: typeof import('~icons/heroicons/x-mark')['default']
     NavBar: typeof import('./src/components/NavBar.vue')['default']
     NoteCard: typeof import('./src/components/NoteCard.vue')['default']
     NoteModal: typeof import('./src/components/NoteModal.vue')['default']

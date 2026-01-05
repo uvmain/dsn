@@ -51,7 +51,7 @@ func (s *TagService) GetAll() ([]types.Tag, error) {
 	}
 	defer rows.Close()
 
-	var tags []types.Tag
+	tags := make([]types.Tag, 0)
 	for rows.Next() {
 		var tag types.Tag
 		err := rows.Scan(&tag.ID, &tag.Name, &tag.Color, &tag.CreatedAt)
