@@ -143,7 +143,7 @@ func TestUserRegistrationAndLogin(t *testing.T) {
 		t.Fatal("Expected auth cookie to be returned")
 	}
 
-	fmt.Println("☑️ User registration and login test passed!")
+	fmt.Println("--- User registration and login test passed!")
 }
 
 func TestNoteCRUD(t *testing.T) {
@@ -222,7 +222,7 @@ func TestNoteCRUD(t *testing.T) {
 		t.Fatalf("Expected title 'Updated Title', got '%s'", updatedNote.Title)
 	}
 
-	fmt.Println("☑️ Note CRUD operations test passed!")
+	fmt.Println("--- Note CRUD operations test passed!")
 }
 
 func TestNoteSearch(t *testing.T) {
@@ -261,7 +261,7 @@ func TestNoteSearch(t *testing.T) {
 		t.Fatalf("Expected note title 'Test Note', got '%s'", searchResults[0].Title)
 	}
 
-	fmt.Println("☑️ Note search test passed!")
+	fmt.Println("--- Note search test passed!")
 }
 
 func TestTagManagement(t *testing.T) {
@@ -319,7 +319,7 @@ func TestTagManagement(t *testing.T) {
 		t.Fatalf("Expected tag name 'Test Tag', got '%s'", tags[0].Name)
 	}
 
-	fmt.Println("☑️ Tag management test passed!")
+	fmt.Println("--- Tag management test passed!")
 }
 
 func TestNoteToggles(t *testing.T) {
@@ -384,10 +384,9 @@ func TestNoteToggles(t *testing.T) {
 		t.Fatal("Expected note to be archived")
 	}
 
-	fmt.Println("☑️ Note toggles test passed!")
+	fmt.Println("--- Note toggles test passed!")
 }
 
-// Helper function for string pointers
 func stringPtr(s string) *string {
 	return &s
 }

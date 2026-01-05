@@ -8,6 +8,8 @@ interface Props {
 interface Emits {
   edit: [note: Note]
   delete: [note: Note]
+  togglePin: [note: Note]
+  toggleArchive: [note: Note]
 }
 
 defineProps<Props>()
@@ -35,11 +37,19 @@ function formatDate(dateString: string) {
       </h3>
       <div class="ml-2 flex space-x-1">
         <button
-          v-if="note.pinned"
-          class="icon-btn text-yellow-500"
-          title="Pinned"
+          class="icon-btn hover:text-yellow-500"
+          :class="{ 'text-yellow-500': note.pinned }"
+          title="Toggle pin"
+          @click.stop="$emit('togglePin', note)"
         >
           <i class="i-heroicons-bookmark-solid h-4 w-4"></i>
+        </button>
+        <button
+          class="icon-btn hover:text-gray-500"
+          title="Toggle archive"
+          @click.stop="$emit('toggleArchive', note)"
+        >
+          <i class="i-heroicons-archive-box h-4 w-4"></i>
         </button>
         <button
           class="icon-btn hover:text-red-500"

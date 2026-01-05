@@ -144,6 +144,42 @@ function deleteNote(note: Note) {
   showDeleteConfirm.value = true
 }
 
+async function togglePin(note: Note) {
+  try {
+    await api.togglePin(note.id, { pinned: !note.pinned })
+    // Update the local note
+    const index = notes.value.findIndex(n => n.id === note.id)
+    if (index !== -1) {
+      notes.value[index] = { ...notes.value[index], pinned: !note.pinned }
+    }
+  }
+  catch (err) {
+    console.error('Failed to toggle pin:', err)
+    error.value = 'Failed to toggle pin status. Please try again.'
+  }
+}
+
+async function toggleArchive(note: Note) {
+  try {
+    await api.toggleArchive(note.id, { archived: !note.archived })
+    // Remove the note from the current view if it was archived
+    if (!note.archived) {
+      notes.value = notes.value.filter(n => n.id !== note.id)
+    }
+    else {
+      // If unarchiving, update the local note
+      const index = notes.value.findIndex(n => n.id === note.id)
+      if (index !== -1) {
+        notes.value[index] = { ...notes.value[index], archived: !note.archived }
+      }
+    }
+  }
+  catch (err) {
+    console.error('Failed to toggle archive:', err)
+    error.value = 'Failed to toggle archive status. Please try again.'
+  }
+}
+
 async function confirmDeleteNote() {
   if (!noteToDelete.value)
     return
@@ -234,12 +270,12 @@ useHead({
 </script>
 
 <template>
-  <div>
-    <div class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl text-gray-800 font-bold">
+  <div class="notes-page">
+    <div class="mb-6 flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+      <h1 class="text-2xl font-bold text-gray-800 sm:text-3xl">
         My Notes
       </h1>
-      <button class="btn" @click="createNote">
+      <button class="btn btn-primary self-start sm:self-auto">
         <i class="i-heroicons-plus mr-2 h-4 w-4"></i>
         New Note
       </button>
@@ -248,14 +284,14 @@ useHead({
     <!-- Search Bar -->
     <div class="mb-6">
       <div class="relative max-w-md">
-        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
           <i class="i-heroicons-magnifying-glass h-5 w-5 text-gray-400"></i>
         </div>
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search notes..."
-          class="w-full border border-gray-300 rounded-lg py-2 pl-10 pr-10 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
+          class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           @keyup.enter="performSearch"
         >
         <button
@@ -271,39 +307,59 @@ useHead({
       </div>
     </div>
 
-    <div v-if="loading" class="py-8 text-center">
-      <div class="text-gray-500">
-        Loading notes...
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600 mx-auto"></div>
+        <div class="text-gray-500">
+          Loading notes...
+        </div>
       </div>
     </div>
 
-    <div v-else-if="error" class="py-8 text-center">
-      <div class="mb-4 text-red-500">
+    <!-- Error State -->
+    <div v-else-if="error" class="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+      <div class="mb-4 text-red-600">
+        <i class="i-heroicons-exclamation-triangle h-12 w-12 mx-auto mb-2"></i>
+        <div class="text-lg font-medium">Error Loading Notes</div>
+      </div>
+      <div class="mb-4 text-red-700">
         {{ error }}
       </div>
-      <button class="btn" @click="loadNotes">
+      <button class="btn btn-primary" @click="loadNotes">
         Try Again
       </button>
     </div>
 
-    <div v-else-if="notes.length === 0" class="py-12 text-center">
-      <div class="mb-4 text-gray-500">
-        No notes yet
+    <!-- Empty State -->
+    <div v-else-if="notes.length === 0" class="text-center py-12">
+      <div class="mb-6">
+        <i class="i-heroicons-document-text h-16 w-16 text-gray-300 mx-auto mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-900 mb-2">
+          No notes yet
+        </h3>
+        <p class="text-gray-500 mb-6 max-w-sm mx-auto">
+          Create your first note to get started organizing your thoughts and ideas.
+        </p>
+        <button class="btn btn-primary btn-lg" @click="createNote">
+          <i class="i-heroicons-plus mr-2 h-5 w-5"></i>
+          Create Your First Note
+        </button>
       </div>
-      <button class="btn" @click="createNote">
-        Create Your First Note
-      </button>
     </div>
 
-    <div v-else class="grid gap-4 lg:grid-cols-3 md:grid-cols-2 xl:grid-cols-4">
+    <!-- Notes Grid -->
+    <div v-else class="notes-grid">
       <NoteCard
         v-for="note in notes"
         :key="note.id"
         :note="note"
-        class="note-card cursor-move"
+        class="note-card"
         draggable="true"
         @edit="editNote"
         @delete="deleteNote"
+        @toggle-pin="togglePin"
+        @toggle-archive="toggleArchive"
         @dragstart="onDragStart($event, note)"
         @dragover="onDragOver($event)"
         @dragenter="onDragEnter($event)"
@@ -322,19 +378,19 @@ useHead({
     />
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div class="max-w-sm w-full rounded bg-white p-6 shadow-lg">
-        <div class="mb-4 text-lg font-semibold">
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+        <div class="mb-4 text-lg font-semibold text-gray-900">
           Delete Note
         </div>
         <div class="mb-6 text-gray-700">
           Are you sure you want to delete this note? This action cannot be undone.
         </div>
-        <div class="flex justify-end gap-2">
-          <button class="btn-secondary btn" @click="cancelDeleteNote">
+        <div class="flex justify-end gap-3">
+          <button class="btn btn-secondary" @click="cancelDeleteNote">
             Cancel
           </button>
-          <button class="btn-danger btn" @click="confirmDeleteNote">
+          <button class="btn btn-danger" @click="confirmDeleteNote">
             Delete
           </button>
         </div>
