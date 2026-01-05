@@ -53,6 +53,7 @@ func createTables(db *sql.DB) error {
 		color TEXT DEFAULT '#ffffff',
 		pinned BOOLEAN DEFAULT FALSE,
 		archived BOOLEAN DEFAULT FALSE,
+		order_position INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
@@ -91,6 +92,7 @@ func createTables(db *sql.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);",
 		"CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned);",
 		"CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived);",
+		"CREATE INDEX IF NOT EXISTS idx_notes_order_position ON notes(order_position);",
 	}
 
 	for _, index := range indexes {

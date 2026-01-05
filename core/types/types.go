@@ -22,6 +22,7 @@ type Note struct {
 	Color     string    `json:"color"`
 	Pinned    bool      `json:"pinned"`
 	Archived  bool      `json:"archived"`
+	Order     int       `json:"order"`
 	Tags      []Tag     `json:"tags,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -51,6 +52,7 @@ type CreateNoteRequest struct {
 	Color    string `json:"color"`
 	Pinned   bool   `json:"pinned"`
 	Archived bool   `json:"archived"`
+	Order    int    `json:"order"`
 }
 
 type UpdateNoteRequest struct {
@@ -59,6 +61,7 @@ type UpdateNoteRequest struct {
 	Color    *string `json:"color,omitempty"`
 	Pinned   *bool   `json:"pinned,omitempty"`
 	Archived *bool   `json:"archived,omitempty"`
+	Order    *int    `json:"order,omitempty"`
 }
 
 type CreateTagRequest struct {

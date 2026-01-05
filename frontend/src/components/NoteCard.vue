@@ -55,6 +55,17 @@ function formatDate(dateString: string) {
       {{ note.content }}
     </p>
 
+    <div v-if="note.tags && note.tags.length > 0" class="mb-2 flex flex-wrap gap-1">
+      <span
+        v-for="tag in note.tags"
+        :key="tag.id"
+        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs text-white font-medium"
+        :style="{ backgroundColor: tag.color }"
+      >
+        {{ tag.name }}
+      </span>
+    </div>
+
     <div class="text-xs text-gray-500">
       {{ formatDate(note.updated_at) }}
     </div>

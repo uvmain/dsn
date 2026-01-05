@@ -17,8 +17,8 @@ func NewNoteService(db *sql.DB) *NoteService {
 
 func (s *NoteService) Create(userID int, req types.CreateNoteRequest) (*types.Note, error) {
 	query := `
-		INSERT INTO notes (user_id, title, content, color, pinned, archived) 
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO notes (user_id, title, content, color, pinned, archived, order_position) 
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -28,7 +28,7 @@ func (s *NoteService) Create(userID int, req types.CreateNoteRequest) (*types.No
 	}
 
 	var note types.Note
-	err := s.db.QueryRow(query, userID, req.Title, req.Content, color, req.Pinned, req.Archived).
+	err := s.db.QueryRow(query, userID, req.Title, req.Content, color, req.Pinned, req.Archived, req.Order).
 		Scan(&note.ID, &note.CreatedAt, &note.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -40,13 +40,14 @@ func (s *NoteService) Create(userID int, req types.CreateNoteRequest) (*types.No
 	note.Color = color
 	note.Pinned = req.Pinned
 	note.Archived = req.Archived
+	note.Order = req.Order
 
 	return &note, nil
 }
 
 func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
 	query := `
-		SELECT id, user_id, title, content, color, pinned, archived, created_at, updated_at 
+		SELECT id, user_id, title, content, color, pinned, archived, order_position, created_at, updated_at 
 		FROM notes 
 		WHERE id = ? AND user_id = ?
 	`
@@ -54,7 +55,7 @@ func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
 	var note types.Note
 	err := s.db.QueryRow(query, id, userID).Scan(
 		&note.ID, &note.UserID, &note.Title, &note.Content, &note.Color,
-		&note.Pinned, &note.Archived, &note.CreatedAt, &note.UpdatedAt,
+		&note.Pinned, &note.Archived, &note.Order, &note.CreatedAt, &note.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -72,7 +73,7 @@ func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
 
 func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Note, error) {
 	query := `
-		SELECT id, user_id, title, content, color, pinned, archived, created_at, updated_at 
+		SELECT id, user_id, title, content, color, pinned, archived, order_position, created_at, updated_at 
 		FROM notes 
 		WHERE user_id = ?
 	`
@@ -82,7 +83,7 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 		query += " AND archived = FALSE"
 	}
 
-	query += " ORDER BY pinned DESC, updated_at DESC"
+	query += " ORDER BY pinned DESC, order_position ASC, updated_at DESC"
 
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
@@ -95,7 +96,7 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 		var note types.Note
 		err := rows.Scan(
 			&note.ID, &note.UserID, &note.Title, &note.Content, &note.Color,
-			&note.Pinned, &note.Archived, &note.CreatedAt, &note.UpdatedAt,
+			&note.Pinned, &note.Archived, &note.Order, &note.CreatedAt, &note.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -140,6 +141,10 @@ func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*type
 		setParts = append(setParts, "archived = ?")
 		args = append(args, *req.Archived)
 	}
+	if req.Order != nil {
+		setParts = append(setParts, "order_position = ?")
+		args = append(args, *req.Order)
+	}
 
 	if len(setParts) == 0 {
 		return s.GetByID(id, userID)
@@ -171,6 +176,30 @@ func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*type
 	return s.GetByID(id, userID)
 }
 
+func (s *NoteService) UpdateOrder(userID int, noteOrders map[int]int) error {
+	// Begin transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Update order for each note
+	for noteID, order := range noteOrders {
+		_, err := tx.Exec(`
+			UPDATE notes 
+			SET order_position = ?, updated_at = CURRENT_TIMESTAMP 
+			WHERE id = ? AND user_id = ?
+		`, order, noteID, userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Commit transaction
+	return tx.Commit()
+}
+
 func (s *NoteService) Delete(id, userID int) error {
 	query := "DELETE FROM notes WHERE id = ? AND user_id = ?"
 	result, err := s.db.Exec(query, id, userID)
@@ -192,10 +221,10 @@ func (s *NoteService) Delete(id, userID int) error {
 
 func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 	searchQuery := `
-		SELECT id, user_id, title, content, color, pinned, archived, created_at, updated_at 
+		SELECT id, user_id, title, content, color, pinned, archived, order_position, created_at, updated_at 
 		FROM notes 
 		WHERE user_id = ? AND (title LIKE ? OR content LIKE ?)
-		ORDER BY pinned DESC, updated_at DESC
+		ORDER BY pinned DESC, order_position ASC, updated_at DESC
 	`
 
 	searchTerm := "%" + query + "%"
@@ -210,7 +239,7 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 		var note types.Note
 		err := rows.Scan(
 			&note.ID, &note.UserID, &note.Title, &note.Content, &note.Color,
-			&note.Pinned, &note.Archived, &note.CreatedAt, &note.UpdatedAt,
+			&note.Pinned, &note.Archived, &note.Order, &note.CreatedAt, &note.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err

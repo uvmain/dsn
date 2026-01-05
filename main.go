@@ -39,6 +39,7 @@ func main() {
 	mux.Handle("PUT /api/notes/{id}", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.UpdateNoteHandler(noteService))))
 	mux.Handle("PATCH /api/notes/{id}/pin", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.TogglePinHandler(noteService))))
 	mux.Handle("PATCH /api/notes/{id}/archive", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.ToggleArchiveHandler(noteService))))
+	mux.Handle("PUT /api/notes/order", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.UpdateNotesOrderHandler(noteService))))
 	mux.Handle("DELETE /api/notes/{id}", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.DeleteNoteHandler(noteService))))
 
 	// tag routes

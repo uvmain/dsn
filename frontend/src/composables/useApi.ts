@@ -91,6 +91,13 @@ class ApiClient {
     })
   }
 
+  async updateNotesOrder(noteOrders: Record<number, number>): Promise<void> {
+    return this.request<void>('/notes/order', {
+      method: 'PUT',
+      body: JSON.stringify(noteOrders),
+    })
+  }
+
   // Tag endpoints
   async getTags(): Promise<Tag[]> {
     return this.request<Tag[]>('/tags')

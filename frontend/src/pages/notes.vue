@@ -11,6 +11,7 @@ const showDeleteConfirm = ref(false)
 const noteToDelete = ref<Note | null>(null)
 const searchQuery = ref('')
 const isSearching = ref(false)
+const draggedNote = ref<Note | null>(null)
 
 async function loadNotes() {
   try {
@@ -42,6 +43,90 @@ function performSearch() {
 function clearSearch() {
   searchQuery.value = ''
   loadNotes()
+}
+
+function onDragStart(event: DragEvent, note: Note) {
+  draggedNote.value = note
+  event.dataTransfer!.effectAllowed = 'move'
+  event.dataTransfer!.setData('text/html', (event.target as HTMLElement).outerHTML)
+}
+
+function onDragOver(event: DragEvent) {
+  event.preventDefault()
+  event.dataTransfer!.dropEffect = 'move'
+  return false
+}
+
+function onDragEnter(event: DragEvent) {
+  event.preventDefault()
+  const target = event.target as HTMLElement
+  const noteCard = target.closest('.note-card')
+  if (noteCard) {
+    noteCard.classList.add('drag-over')
+  }
+}
+
+function onDragLeave(event: DragEvent) {
+  event.preventDefault()
+  const target = event.target as HTMLElement
+  const noteCard = target.closest('.note-card')
+  if (noteCard) {
+    noteCard.classList.remove('drag-over')
+  }
+}
+
+async function onDrop(event: DragEvent, targetNote: Note) {
+  event.preventDefault()
+  const target = event.target as HTMLElement
+  const noteCard = target.closest('.note-card')
+  if (noteCard) {
+    noteCard.classList.remove('drag-over')
+  }
+
+  if (!draggedNote.value || draggedNote.value.id === targetNote.id) {
+    return
+  }
+
+  const draggedIndex = notes.value.findIndex(n => n.id === draggedNote.value!.id)
+  const targetIndex = notes.value.findIndex(n => n.id === targetNote.id)
+
+  if (draggedIndex === -1 || targetIndex === -1) {
+    return
+  }
+
+  // Reorder the notes array
+  const newNotes = [...notes.value]
+  const [draggedItem] = newNotes.splice(draggedIndex, 1)
+  newNotes.splice(targetIndex, 0, draggedItem)
+
+  // Update the order values
+  const noteOrders: Record<number, number> = {}
+  newNotes.forEach((note, index) => {
+    noteOrders[note.id] = index
+  })
+
+  // Update local state immediately for responsive UI
+  notes.value = newNotes.map((note, index) => ({ ...note, order: index }))
+
+  // Save the new order to the backend
+  try {
+    await api.updateNotesOrder(noteOrders)
+  }
+  catch (err) {
+    console.error('Failed to update note order:', err)
+    // Revert the changes on error
+    await loadNotes()
+  }
+
+  draggedNote.value = null
+}
+
+function onDragEnd() {
+  draggedNote.value = null
+  // Clean up any remaining drag-over classes
+  document.querySelectorAll('.note-card').forEach((card) => {
+    card.classList.remove('drag-over')
+  })
 }
 
 function createNote() {
@@ -80,26 +165,49 @@ function cancelDeleteNote() {
   showDeleteConfirm.value = false
 }
 
-async function saveNote(noteData: { title: string, content: string, color: string }) {
+async function saveNote(noteData: { title: string, content: string, color: string, tags?: number[] }) {
   try {
     error.value = null
 
     if (selectedNote.value) {
       // Update existing note
-      const updatedNote = await api.updateNote(selectedNote.value.id, noteData)
+      const updatedNote = await api.updateNote(selectedNote.value.id, {
+        title: noteData.title,
+        content: noteData.content,
+        color: noteData.color,
+      })
       const index = notes.value.findIndex(n => n.id === selectedNote.value!.id)
       if (index !== -1) {
         notes.value[index] = updatedNote
+      }
+
+      // Update tags if provided
+      if (noteData.tags !== undefined) {
+        await api.setNoteTags(selectedNote.value.id, { tag_ids: noteData.tags })
+        // Reload notes to get updated tags
+        await loadNotes()
       }
     }
     else {
       // Create new note
       const newNote = await api.createNote({
-        ...noteData,
+        title: noteData.title,
+        content: noteData.content,
+        color: noteData.color,
         pinned: false,
         archived: false,
+        order: 0, // New notes get order 0, will be reordered later
       })
-      notes.value.unshift(newNote)
+
+      // Set tags if provided
+      if (noteData.tags && noteData.tags.length > 0) {
+        await api.setNoteTags(newNote.id, { tag_ids: noteData.tags })
+        // Reload notes to get tags
+        await loadNotes()
+      }
+      else {
+        notes.value.unshift(newNote)
+      }
     }
 
     closeModal()
@@ -192,8 +300,16 @@ useHead({
         v-for="note in notes"
         :key="note.id"
         :note="note"
+        class="note-card cursor-move"
+        draggable="true"
         @edit="editNote"
         @delete="deleteNote"
+        @dragstart="onDragStart($event, note)"
+        @dragover="onDragOver($event)"
+        @dragenter="onDragEnter($event)"
+        @dragleave="onDragLeave($event)"
+        @drop="onDrop($event, note)"
+        @dragend="onDragEnd"
       />
     </div>
 
@@ -226,3 +342,28 @@ useHead({
     </div>
   </div>
 </template>
+
+<style scoped>
+.note-card {
+  transition: all 0.2s ease;
+}
+
+.note-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.note-card.drag-over {
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border: 2px dashed #3b82f6;
+}
+
+.note-card[draggable="true"] {
+  user-select: none;
+}
+
+.note-card[draggable="true"]:active {
+  transform: rotate(2deg);
+}
+</style>

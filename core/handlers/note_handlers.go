@@ -228,3 +228,28 @@ func ToggleArchiveHandler(noteService *services.NoteService) http.HandlerFunc {
 		json.NewEncoder(w).Encode(note)
 	}
 }
+
+// UpdateNotesOrderHandler handles updating the order of multiple notes
+func UpdateNotesOrderHandler(noteService *services.NoteService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := getUserIDFromRequest(r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var noteOrders map[int]int
+		if err := json.NewDecoder(r.Body).Decode(&noteOrders); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		err = noteService.UpdateOrder(userID, noteOrders)
+		if err != nil {
+			http.Error(w, "Failed to update note order", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}

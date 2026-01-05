@@ -18,6 +18,7 @@ export interface Note {
   color: string
   pinned: boolean
   archived: boolean
+  order: number
   tags?: Tag[]
   created_at: string
   updated_at: string
@@ -56,6 +57,7 @@ export interface CreateNoteRequest {
   color: string
   pinned: boolean
   archived: boolean
+  order: number
 }
 
 export interface UpdateNoteRequest {
@@ -64,6 +66,7 @@ export interface UpdateNoteRequest {
   color?: string
   pinned?: boolean
   archived?: boolean
+  order?: number
 }
 
 export interface CreateTagRequest {
