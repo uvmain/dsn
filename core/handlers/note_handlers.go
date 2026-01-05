@@ -1,11 +1,19 @@
 package handlers
 
 import (
+	"dsn/core/config"
 	"dsn/core/services"
 	"dsn/core/types"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // GetNotesHandler handles getting all notes for a user
@@ -257,5 +265,73 @@ func UpdateNotesOrderHandler(noteService *services.NoteService) http.HandlerFunc
 		}
 
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+// UploadImageHandler handles uploading images
+func UploadImageHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := getUserIDFromRequest(r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Parse multipart form
+		err = r.ParseMultipartForm(10 << 20) // 10 MB
+		if err != nil {
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+
+		file, header, err := r.FormFile("image")
+		if err != nil {
+			http.Error(w, "Failed to get image", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		// Validate file type
+		contentType := header.Header.Get("Content-Type")
+		if !strings.HasPrefix(contentType, "image/") {
+			http.Error(w, "Invalid file type", http.StatusBadRequest)
+			return
+		}
+
+		// Generate filename
+		ext := filepath.Ext(header.Filename)
+		if ext == "" {
+			ext = ".png" // default
+		}
+		filename := fmt.Sprintf("%d_%d%s", userID, time.Now().Unix(), ext)
+		filePath := path.Join(config.DataDirectoryPath, "uploads", filename)
+
+		// Create uploads directory if not exists
+		uploadsDir := path.Join(config.DataDirectoryPath, "uploads")
+		err = os.MkdirAll(uploadsDir, 0755)
+		if err != nil {
+			http.Error(w, "Failed to create directory", http.StatusInternalServerError)
+			return
+		}
+
+		// Save file
+		dst, err := os.Create(filePath)
+		if err != nil {
+			http.Error(w, "Failed to save file", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			http.Error(w, "Failed to save file", http.StatusInternalServerError)
+			return
+		}
+
+		// Return URL
+		url := fmt.Sprintf("/uploads/%s", filename)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"url": url})
 	}
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Note } from '~/types'
+import TagsAside from '~/components/TagsAside.vue'
 import { api } from '~/composables/useApi'
 
 const notes = ref<Note[]>([])
@@ -7,11 +8,14 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const showModal = ref(false)
 const selectedNote = ref<Note | null>(null)
-const showDeleteConfirm = ref(false)
-const noteToDelete = ref<Note | null>(null)
 const searchQuery = ref('')
 const isSearching = ref(false)
 const draggedNote = ref<Note | null>(null)
+const selectedTagIds = ref<number[]>([])
+
+// Computed properties to separate pinned and unpinned notes
+const pinnedNotes = computed(() => notes.value.filter(note => note.pinned))
+const otherNotes = computed(() => notes.value.filter(note => !note.pinned))
 
 async function loadNotes() {
   try {
@@ -25,6 +29,13 @@ async function loadNotes() {
     else {
       isSearching.value = false
       notes.value = await api.getNotes()
+    }
+
+    // Apply tag filtering
+    if (selectedTagIds.value.length > 0) {
+      notes.value = notes.value.filter((note: Note) =>
+        note.tags?.some(tag => selectedTagIds.value.includes(tag.id)),
+      )
     }
   }
   catch (err) {
@@ -42,6 +53,17 @@ function performSearch() {
 
 function clearSearch() {
   searchQuery.value = ''
+  selectedTagIds.value = []
+  loadNotes()
+}
+
+function onFilterByTag(tagId: number | null) {
+  if (tagId === null) {
+    selectedTagIds.value = []
+  }
+  else {
+    selectedTagIds.value = [tagId]
+  }
   loadNotes()
 }
 
@@ -87,17 +109,50 @@ async function onDrop(event: DragEvent, targetNote: Note) {
     return
   }
 
-  const draggedIndex = notes.value.findIndex(n => n.id === draggedNote.value!.id)
-  const targetIndex = notes.value.findIndex(n => n.id === targetNote.id)
+  // Determine which section the dragged note and target note are in
+  const draggedIsPinned = draggedNote.value.pinned
+  const targetIsPinned = targetNote.pinned
+
+  // If they're in different sections, toggle the pin status
+  if (draggedIsPinned !== targetIsPinned) {
+    try {
+      await api.togglePin(draggedNote.value.id, { pinned: targetIsPinned })
+      // Reload notes to update sections
+      await loadNotes()
+    }
+    catch (err) {
+      console.error('Failed to toggle pin:', err)
+      error.value = 'Failed to toggle pin status. Please try again.'
+    }
+    draggedNote.value = null
+    return
+  }
+
+  // Same section reordering logic
+  // Get the notes in the same section
+  const sectionNotes = draggedIsPinned ? pinnedNotes.value : otherNotes.value
+  const draggedIndex = sectionNotes.findIndex(n => n.id === draggedNote.value!.id)
+  const targetIndex = sectionNotes.findIndex(n => n.id === targetNote.id)
 
   if (draggedIndex === -1 || targetIndex === -1) {
     return
   }
 
-  // Reorder the notes array
+  // Reorder within the section
+  const newSectionNotes = [...sectionNotes]
+  const [draggedItem] = newSectionNotes.splice(draggedIndex, 1)
+  newSectionNotes.splice(targetIndex, 0, draggedItem)
+
+  // Update the global notes array with the new order within the section
   const newNotes = [...notes.value]
-  const [draggedItem] = newNotes.splice(draggedIndex, 1)
-  newNotes.splice(targetIndex, 0, draggedItem)
+
+  // Replace the section in the global array
+  if (draggedIsPinned) {
+    newNotes.splice(0, pinnedNotes.value.length, ...newSectionNotes)
+  }
+  else {
+    newNotes.splice(pinnedNotes.value.length, otherNotes.value.length, ...newSectionNotes)
+  }
 
   // Update the order values
   const noteOrders: Record<number, number> = {}
@@ -139,19 +194,22 @@ function editNote(note: Note) {
   showModal.value = true
 }
 
-function deleteNote(note: Note) {
-  noteToDelete.value = note
-  showDeleteConfirm.value = true
+async function deleteNote(note: Note) {
+  try {
+    await api.deleteNote(note.id)
+    notes.value = notes.value.filter(n => n.id !== note.id)
+  }
+  catch (err) {
+    console.error('Failed to delete note:', err)
+    error.value = 'Failed to delete note. Please try again.'
+  }
 }
 
 async function togglePin(note: Note) {
   try {
     await api.togglePin(note.id, { pinned: !note.pinned })
-    // Update the local note
-    const index = notes.value.findIndex(n => n.id === note.id)
-    if (index !== -1) {
-      notes.value[index] = { ...notes.value[index], pinned: !note.pinned }
-    }
+    // Reload notes to update sections
+    await loadNotes()
   }
   catch (err) {
     console.error('Failed to toggle pin:', err)
@@ -180,28 +238,7 @@ async function toggleArchive(note: Note) {
   }
 }
 
-async function confirmDeleteNote() {
-  if (!noteToDelete.value)
-    return
-
-  try {
-    await api.deleteNote(noteToDelete.value.id)
-    notes.value = notes.value.filter(n => n.id !== noteToDelete.value!.id)
-    noteToDelete.value = null
-    showDeleteConfirm.value = false
-  }
-  catch (err) {
-    console.error('Failed to delete note:', err)
-    error.value = 'Failed to delete note. Please try again.'
-  }
-}
-
-function cancelDeleteNote() {
-  noteToDelete.value = null
-  showDeleteConfirm.value = false
-}
-
-async function saveNote(noteData: { title: string, content: string, color: string, tags?: number[] }) {
+async function saveNote(noteData: { title: string, content: string, color: string, tags?: number[], pinned: boolean }) {
   try {
     error.value = null
 
@@ -219,6 +256,14 @@ async function saveNote(noteData: { title: string, content: string, color: strin
         }
       }
 
+      // Update pinned status if changed
+      if (noteData.pinned !== selectedNote.value.pinned) {
+        await api.togglePin(selectedNote.value.id, { pinned: noteData.pinned })
+        // Reload notes to update sections
+        await loadNotes()
+        return
+      }
+
       // Update tags if provided
       if (noteData.tags !== undefined) {
         await api.setNoteTags(selectedNote.value.id, { tag_ids: noteData.tags })
@@ -232,7 +277,7 @@ async function saveNote(noteData: { title: string, content: string, color: strin
         title: noteData.title,
         content: noteData.content,
         color: noteData.color,
-        pinned: false,
+        pinned: noteData.pinned,
         archived: false,
         order: 0, // New notes get order 0, will be reordered later
       })
@@ -272,138 +317,168 @@ useHead({
 </script>
 
 <template>
-  <div class="notes-page">
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-      <h1 class="text-2xl text-gray-800 font-bold sm:text-3xl">
-        My Notes
-      </h1>
-      <button class="btn flex flex-row items-center" @click="createNote">
-        <icon-heroicons-plus class="mr-2 h-4 w-4" />
-        New Note
-      </button>
-    </div>
-
-    <!-- Search Bar -->
-    <div class="mb-6">
-      <div class="relative max-w-md">
-        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <icon-heroicons-magnifying-glass class="h-5 w-5 text-gray-400" />
-        </div>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search notes..."
-          class="w-full border border-gray-300 rounded-lg py-2 pl-10 pr-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-          @keyup.enter="performSearch"
-        >
-        <button
-          v-if="searchQuery"
-          class="absolute inset-y-0 right-0 flex items-center pr-3"
-          @click="clearSearch"
-        >
-          <icon-heroicons-x-mark class="h-5 w-5 text-gray-400 hover:text-gray-600" />
-        </button>
-      </div>
-      <div v-if="isSearching" class="mt-2 text-sm text-gray-600">
-        Showing search results for "{{ searchQuery }}"
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="text-center">
-        <div class="mx-auto mb-4 h-8 w-8 animate-spin border-4 border-primary-200 border-t-primary-600 rounded-full"></div>
-        <div class="text-gray-500">
-          Loading notes...
-        </div>
-      </div>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="border border-red-200 rounded-lg bg-red-50 p-6 text-center">
-      <div class="mb-4 text-red-600">
-        <icon-heroicons-exclamation-triangle class="mx-auto mb-2 h-12 w-12" />
-        <div class="text-lg font-medium">
-          Error Loading Notes
-        </div>
-      </div>
-      <div class="mb-4 text-red-700">
-        {{ error }}
-      </div>
-      <button class="btn" @click="loadNotes">
-        Try Again
-      </button>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="notes && notes.length === 0" class="py-12 text-center">
-      <div class="mb-6">
-        <icon-heroicons-document-text class="mx-auto mb-4 h-16 w-16 text-gray-300" />
-        <h3 class="mb-2 text-xl text-gray-900 font-medium">
-          No notes yet
-        </h3>
-        <p class="mx-auto mb-6 max-w-sm text-gray-500">
-          Create your first note to get started organizing your thoughts and ideas.
-        </p>
-        <button class="btn" @click="createNote">
-          <icon-heroicons-plus class="mr-2 h-5 w-5" />
-          Create Your First Note
-        </button>
-      </div>
-    </div>
-
-    <!-- Notes Grid -->
-    <div v-else class="notes-grid">
-      <NoteCard
-        v-for="note in notes"
-        :key="note.id"
-        :note="note"
-        class="note-card"
-        draggable="true"
-        @edit="editNote"
-        @delete="deleteNote"
-        @toggle-pin="togglePin"
-        @toggle-archive="toggleArchive"
-        @dragstart="onDragStart($event, note)"
-        @dragover="onDragOver($event)"
-        @dragenter="onDragEnter($event)"
-        @dragleave="onDragLeave($event)"
-        @drop="onDrop($event, note)"
-        @dragend="onDragEnd"
-      />
-    </div>
-
-    <!-- Note Modal -->
-    <NoteModal
-      v-if="showModal"
-      :note="selectedNote"
-      @save="saveNote"
-      @close="closeModal"
+  <div class="flex">
+    <!-- Tags Sidebar -->
+    <TagsAside
+      :selected-tag-ids="selectedTagIds"
+      @filter-by-tag="onFilterByTag"
     />
 
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div class="max-w-sm w-full rounded-lg bg-white p-6 shadow-xl">
-        <div class="mb-4 text-lg text-gray-900 font-semibold">
-          Delete Note
-        </div>
-        <div class="mb-6 text-gray-700">
-          Are you sure you want to delete this note? This action cannot be undone.
-        </div>
-        <div class="flex justify-end gap-3">
-          <button class="btn-secondary btn" @click="cancelDeleteNote">
-            Cancel
+    <!-- Main Content -->
+    <div class="container mx-auto flex-1 px-8 py-8 lg:px-16">
+      <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <h1 class="text-2xl text-gray-800 font-bold sm:text-3xl">
+          My Notes
+        </h1>
+        <button class="btn flex flex-row items-center" @click="createNote">
+          <icon-heroicons-plus class="mr-2 h-4 w-4" />
+          New Note
+        </button>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="mb-6">
+        <div class="relative max-w-md">
+          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <icon-heroicons-magnifying-glass class="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search notes..."
+            class="w-full border border-gray-300 rounded-lg py-2 pl-10 pr-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            @keyup.enter="performSearch"
+          >
+          <button
+            v-if="searchQuery"
+            class="absolute inset-y-0 right-0 flex items-center pr-3"
+            @click="clearSearch"
+          >
+            <icon-heroicons-x-mark class="h-5 w-5 text-gray-400 hover:text-gray-600" />
           </button>
-          <button class="btn-danger btn" @click="confirmDeleteNote">
-            Delete
+        </div>
+        <div v-if="isSearching" class="mt-2 text-sm text-gray-600">
+          Showing search results for "{{ searchQuery }}"
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <div class="text-center">
+          <div class="mx-auto mb-4 h-8 w-8 animate-spin border-4 border-primary-200 border-t-primary-600 rounded-full"></div>
+          <div class="text-gray-500">
+            Loading notes...
+          </div>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="border border-red-200 rounded-lg bg-red-50 p-6 text-center">
+        <div class="mb-4 text-red-600">
+          <icon-heroicons-exclamation-triangle class="mx-auto mb-2 h-12 w-12" />
+          <div class="text-lg font-medium">
+            Error Loading Notes
+          </div>
+        </div>
+        <div class="mb-4 text-red-700">
+          {{ error }}
+        </div>
+        <button class="btn" @click="loadNotes">
+          Try Again
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="notes && notes.length === 0" class="py-12 text-center">
+        <div class="mb-6">
+          <icon-heroicons-document-text class="mx-auto mb-4 h-16 w-16 text-gray-300" />
+          <h3 class="mb-2 text-xl text-gray-900 font-medium">
+            No notes yet
+          </h3>
+          <p class="mx-auto mb-6 max-w-sm text-gray-500">
+            Create your first note to get started organizing your thoughts and ideas.
+          </p>
+          <button class="btn" @click="createNote">
+            <icon-heroicons-plus class="mr-2 h-5 w-5" />
+            Create Your First Note
           </button>
         </div>
       </div>
+
+      <!-- Notes Sections -->
+      <div v-else>
+        <!-- Pinned Notes Section -->
+        <div v-if="pinnedNotes.length > 0" class="mb-8">
+          <h2 class="mb-4 text-lg text-gray-700 font-semibold">
+            Pinned
+          </h2>
+          <div class="notes-grid">
+            <NoteCard
+              v-for="note in pinnedNotes"
+              :key="note.id"
+              :note="note"
+              class="note-card"
+              draggable="true"
+              @edit="editNote"
+              @delete="deleteNote"
+              @toggle-pin="togglePin"
+              @toggle-archive="toggleArchive"
+              @dragstart="onDragStart($event, note)"
+              @dragover="onDragOver($event)"
+              @dragenter="onDragEnter($event)"
+              @dragleave="onDragLeave($event)"
+              @drop="onDrop($event, note)"
+              @dragend="onDragEnd"
+            />
+          </div>
+        </div>
+
+        <!-- Other Notes Section -->
+        <div v-if="otherNotes.length > 0">
+          <h2 v-if="pinnedNotes.length > 0" class="mb-4 text-lg text-gray-700 font-semibold">
+            Other notes
+          </h2>
+          <div class="notes-grid">
+            <NoteCard
+              v-for="note in otherNotes"
+              :key="note.id"
+              :note="note"
+              class="note-card"
+              draggable="true"
+              @edit="editNote"
+              @delete="deleteNote"
+              @toggle-pin="togglePin"
+              @toggle-archive="toggleArchive"
+              @dragstart="onDragStart($event, note)"
+              @dragover="onDragOver($event)"
+              @dragenter="onDragEnter($event)"
+              @dragleave="onDragLeave($event)"
+              @drop="onDrop($event, note)"
+              @dragend="onDragEnd"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Note Modal -->
+      <NoteModal
+        v-if="showModal"
+        :note="selectedNote"
+        @save="saveNote"
+        @close="closeModal"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  padding: 0;
+}
+
 .note-card {
   transition: all 0.2s ease;
 }
@@ -424,6 +499,6 @@ useHead({
 }
 
 .note-card[draggable="true"]:active {
-  transform: rotate(2deg);
+  transform: rotate(1deg);
 }
 </style>

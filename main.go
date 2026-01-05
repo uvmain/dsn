@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"dsn/core/config"
 	"dsn/core/database"
@@ -55,6 +56,13 @@ func main() {
 	// admin routes
 	mux.Handle("GET /api/users", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.GetUsersHandler(userService))))
 	mux.Handle("DELETE /api/users/{id}", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.DeleteUserHandler(userService))))
+
+	// Serve uploaded files
+	uploadsDir := filepath.Join(config.DataDirectoryPath, "uploads")
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))))
+
+	// Upload route
+	mux.Handle("POST /api/upload/image", handlers.AuthMiddleware(authService)(http.HandlerFunc(handlers.UploadImageHandler())))
 
 	handler := handlers.CorsMiddleware(mux)
 

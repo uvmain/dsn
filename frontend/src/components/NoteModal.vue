@@ -7,7 +7,7 @@ interface Props {
 }
 
 interface Emits {
-  save: [data: { title: string, content: string, color: string, tags?: number[] }]
+  save: [data: { title: string, content: string, color: string, tags?: number[], pinned: boolean }]
   close: []
 }
 
@@ -30,6 +30,7 @@ const form = reactive({
   content: props.note?.content || '',
   color: props.note?.color || '#ffffff',
   selectedTagIds: props.note?.tags?.map(tag => tag.id) || [],
+  pinned: props.note?.pinned || false,
 })
 
 const availableTags = ref<Tag[]>([])
@@ -81,6 +82,7 @@ function handleSave() {
     content: form.content,
     color: form.color,
     tags: form.selectedTagIds,
+    pinned: form.pinned,
   })
 }
 
@@ -148,6 +150,19 @@ onMounted(() => {
               ></i>
             </button>
           </div>
+        </div>
+
+        <div>
+          <label class="flex cursor-pointer items-center space-x-2">
+            <input
+              v-model="form.pinned"
+              type="checkbox"
+              class="h-4 w-4 border-gray-300 rounded text-primary-600 focus:ring-primary-500"
+            >
+            <span class="text-sm text-gray-700 font-medium">
+              Pin note
+            </span>
+          </label>
         </div>
 
         <div>

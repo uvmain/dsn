@@ -103,12 +103,11 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 		}
 
 		// Load tags for each note
-		// tags, err := s.getNoteTags(note.ID)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// note.Tags = tags
-		note.Tags = []types.Tag{}
+		tags, err := s.getNoteTags(note.ID)
+		if err != nil {
+			return nil, err
+		}
+		note.Tags = tags
 
 		notes = append(notes, note)
 	}
@@ -246,12 +245,11 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 		}
 
 		// Load tags for each note
-		// tags, err := s.getNoteTags(note.ID)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// note.Tags = tags
-		note.Tags = []types.Tag{}
+		tags, err := s.getNoteTags(note.ID)
+		if err != nil {
+			return nil, err
+		}
+		note.Tags = tags
 
 		notes = append(notes, note)
 	}

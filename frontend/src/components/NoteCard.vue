@@ -12,8 +12,8 @@ interface Emits {
   toggleArchive: [note: Note]
 }
 
-defineProps<Props>()
-defineEmits<Emits>()
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
 function formatDate(dateString: string) {
   const date = new Date(dateString)
@@ -23,13 +23,21 @@ function formatDate(dateString: string) {
     year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
   })
 }
+
+function handleCardClick(event: Event) {
+  const target = event.target as HTMLElement
+  // Don't emit edit if clicking on a button
+  if (!target.closest('button')) {
+    emit('edit', props.note)
+  }
+}
 </script>
 
 <template>
   <div
     class="cursor-pointer border rounded-lg bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
     :style="{ backgroundColor: note.color }"
-    @click="$emit('edit', note)"
+    @click="handleCardClick"
   >
     <div class="mb-2 flex items-start justify-between">
       <h3 v-if="note.title" class="line-clamp-2 text-gray-800 font-semibold">
@@ -41,30 +49,28 @@ function formatDate(dateString: string) {
           class="icon-btn hover:text-yellow-500"
           :class="{ 'text-yellow-500': note.pinned }"
           title="Toggle pin"
-          @click.stop="$emit('togglePin', note)"
+          @click.stop.prevent="$emit('togglePin', note)"
         >
           <icon-heroicons-bookmark-solid class="h-4 w-4" />
         </button>
         <button
           class="icon-btn hover:text-gray-500"
           title="Toggle archive"
-          @click.stop="$emit('toggleArchive', note)"
+          @click.stop.prevent="$emit('toggleArchive', note)"
         >
           <icon-heroicons-archive-box class="h-4 w-4" />
         </button>
         <button
           class="icon-btn hover:text-red-500"
           title="Delete"
-          @click.stop="$emit('delete', note)"
+          @click.stop.prevent="$emit('delete', note)"
         >
           <icon-heroicons-trash class="h-4 w-4" />
         </button>
       </div>
     </div>
 
-    <p v-if="note.content" class="line-clamp-4 mb-3 text-sm text-gray-700">
-      {{ note.content }}
-    </p>
+    <p v-if="note.content" class="note-content line-clamp-4 mb-3 text-sm text-gray-700" v-html="note.content"></p>
 
     <div v-if="note.tags && note.tags.length > 0" class="mb-2 flex flex-wrap gap-1">
       <span
@@ -98,5 +104,12 @@ function formatDate(dateString: string) {
   -webkit-box-orient: vertical;
   line-clamp: 4;
   overflow: hidden;
+}
+
+.note-content :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 8px 0;
 }
 </style>

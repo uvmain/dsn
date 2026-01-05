@@ -7,11 +7,15 @@ class ApiClient {
     const url = `${BASE_URL}${endpoint}`
     const config: RequestInit = {
       credentials: 'include',
-      headers: {
+      ...options,
+    }
+
+    // Don't set Content-Type for FormData
+    if (!(options.body instanceof FormData)) {
+      config.headers = {
         'Content-Type': 'application/json',
         ...options.headers,
-      },
-      ...options,
+      }
     }
 
     const response = await fetch(url, config)
@@ -147,6 +151,15 @@ class ApiClient {
     return this.request<void>(`/notes/${noteId}/tags`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    })
+  }
+
+  async uploadImage(file: File): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.append('image', file)
+    return this.request<{ url: string }>('/upload/image', {
+      method: 'POST',
+      body: formData,
     })
   }
 
