@@ -60,3 +60,25 @@ type UpdateNoteRequest struct {
 	Pinned   *bool   `json:"pinned,omitempty"`
 	Archived *bool   `json:"archived,omitempty"`
 }
+
+type CreateTagRequest struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+type UpdateTagRequest struct {
+	Name  *string `json:"name,omitempty"`
+	Color *string `json:"color,omitempty"`
+}
+
+type AssignTagsToNoteRequest struct {
+	TagIDs []int `json:"tag_ids"`
+}
+
+type TogglePinRequest struct {
+	Pinned bool `json:"pinned"`
+}
+
+type ToggleArchiveRequest struct {
+	Archived bool `json:"archived"`
+}

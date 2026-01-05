@@ -18,8 +18,16 @@ export interface Note {
   color: string
   pinned: boolean
   archived: boolean
+  tags?: Tag[]
   created_at: string
   updated_at: string
+}
+
+export interface Tag {
+  id: number
+  name: string
+  color: string
+  created_at: string
 }
 
 export interface User {
@@ -56,4 +64,26 @@ export interface UpdateNoteRequest {
   color?: string
   pinned?: boolean
   archived?: boolean
+}
+
+export interface CreateTagRequest {
+  name: string
+  color: string
+}
+
+export interface UpdateTagRequest {
+  name?: string
+  color?: string
+}
+
+export interface AssignTagsToNoteRequest {
+  tag_ids: number[]
+}
+
+export interface TogglePinRequest {
+  pinned: boolean
+}
+
+export interface ToggleArchiveRequest {
+  archived: boolean
 }

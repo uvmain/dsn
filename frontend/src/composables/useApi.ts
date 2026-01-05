@@ -1,4 +1,4 @@
-import type { CreateNoteRequest, CreateUserRequest, LoginRequest, Note, UpdateNoteRequest, User } from '~/types'
+import type { AssignTagsToNoteRequest, CreateNoteRequest, CreateTagRequest, CreateUserRequest, LoginRequest, Note, Tag, ToggleArchiveRequest, TogglePinRequest, UpdateNoteRequest, UpdateTagRequest, User } from '~/types'
 
 const BASE_URL = '/api'
 
@@ -49,6 +49,10 @@ class ApiClient {
     return this.request<Note[]>('/notes')
   }
 
+  async searchNotes(query: string): Promise<Note[]> {
+    return this.request<Note[]>(`/notes/search?q=${encodeURIComponent(query)}`)
+  }
+
   async getNote(id: number): Promise<Note> {
     return this.request<Note>(`/notes/${id}`)
   }
@@ -67,9 +71,67 @@ class ApiClient {
     })
   }
 
+  async togglePin(id: number, data: TogglePinRequest): Promise<Note> {
+    return this.request<Note>(`/notes/${id}/pin`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async toggleArchive(id: number, data: ToggleArchiveRequest): Promise<Note> {
+    return this.request<Note>(`/notes/${id}/archive`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
   async deleteNote(id: number): Promise<void> {
     return this.request<void>(`/notes/${id}`, {
       method: 'DELETE',
+    })
+  }
+
+  // Tag endpoints
+  async getTags(): Promise<Tag[]> {
+    return this.request<Tag[]>('/tags')
+  }
+
+  async createTag(data: CreateTagRequest): Promise<Tag> {
+    return this.request<Tag>('/tags', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateTag(id: number, data: UpdateTagRequest): Promise<Tag> {
+    return this.request<Tag>(`/tags/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteTag(id: number): Promise<void> {
+    return this.request<void>(`/tags/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async assignTagToNote(noteId: number, tagId: number): Promise<void> {
+    return this.request<void>(`/notes/${noteId}/tags/${tagId}`, {
+      method: 'POST',
+    })
+  }
+
+  async removeTagFromNote(noteId: number, tagId: number): Promise<void> {
+    return this.request<void>(`/notes/${noteId}/tags/${tagId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async setNoteTags(noteId: number, data: AssignTagsToNoteRequest): Promise<void> {
+    return this.request<void>(`/notes/${noteId}/tags`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     })
   }
 

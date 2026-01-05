@@ -1,14 +1,5 @@
 <script setup lang="ts">
-interface Note {
-  id: number
-  title: string
-  content: string
-  color: string
-  pinned: boolean
-  archived: boolean
-  created_at: string
-  updated_at: string
-}
+import type { Note } from '~/types'
 
 interface Props {
   note?: Note | null

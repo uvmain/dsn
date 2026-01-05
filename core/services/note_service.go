@@ -102,11 +102,12 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 		}
 
 		// Load tags for each note
-		tags, err := s.getNoteTags(note.ID)
-		if err != nil {
-			return nil, err
-		}
-		note.Tags = tags
+		// tags, err := s.getNoteTags(note.ID)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// note.Tags = tags
+		note.Tags = []types.Tag{}
 
 		notes = append(notes, note)
 	}
@@ -215,11 +216,13 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 			return nil, err
 		}
 
-		tags, err := s.getNoteTags(note.ID)
-		if err != nil {
-			return nil, err
-		}
-		note.Tags = tags
+		// Load tags for each note
+		// tags, err := s.getNoteTags(note.ID)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// note.Tags = tags
+		note.Tags = []types.Tag{}
 
 		notes = append(notes, note)
 	}
@@ -227,12 +230,61 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 	return notes, nil
 }
 
+func (s *NoteService) TogglePin(id, userID int, pinned bool) (*types.Note, error) {
+	query := `
+		UPDATE notes 
+		SET pinned = ?, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = ? AND user_id = ?
+	`
+
+	result, err := s.db.Exec(query, pinned, id, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		return nil, fmt.Errorf("note with id %d not found", id)
+	}
+
+	return s.GetByID(id, userID)
+}
+
+func (s *NoteService) ToggleArchive(id, userID int, archived bool) (*types.Note, error) {
+	query := `
+		UPDATE notes 
+		SET archived = ?, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = ? AND user_id = ?
+	`
+
+	result, err := s.db.Exec(query, archived, id, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		return nil, fmt.Errorf("note with id %d not found", id)
+	}
+
+	return s.GetByID(id, userID)
+}
+
 func (s *NoteService) getNoteTags(noteID int) ([]types.Tag, error) {
 	query := `
-		SELECT t.id, t.name, t.color, t.created_at 
+		SELECT t.id, t.name, t.color, t.created_at
 		FROM tags t
 		JOIN note_tags nt ON t.id = nt.tag_id
 		WHERE nt.note_id = ?
+		ORDER BY t.name
 	`
 
 	rows, err := s.db.Query(query, noteID)
@@ -249,6 +301,11 @@ func (s *NoteService) getNoteTags(noteID int) ([]types.Tag, error) {
 			return nil, err
 		}
 		tags = append(tags, tag)
+	}
+
+	// Check for iteration errors
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return tags, nil

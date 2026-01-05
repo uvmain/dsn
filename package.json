@@ -26,6 +26,7 @@
     "lint:frontend": "npm run lint --workspace frontend",
     "lint:backend": "golangci-lint run",
     "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:fix": "npm run lint --fix --workspace frontend",
     "cspell": "cspell \"**/*.{go,ts,js,vue}\""
   },
   "repository": {

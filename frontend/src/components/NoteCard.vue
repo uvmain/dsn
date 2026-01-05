@@ -1,14 +1,5 @@
 <script setup lang="ts">
-interface Note {
-  id: number
-  title: string
-  content: string
-  color: string
-  pinned: boolean
-  archived: boolean
-  created_at: string
-  updated_at: string
-}
+import type { Note } from '~/types'
 
 interface Props {
   note: Note
@@ -75,6 +66,7 @@ function formatDate(dateString: string) {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   overflow: hidden;
 }
 
@@ -82,6 +74,7 @@ function formatDate(dateString: string) {
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
+  line-clamp: 4;
   overflow: hidden;
 }
 </style>
