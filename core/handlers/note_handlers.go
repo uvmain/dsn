@@ -16,7 +16,6 @@ import (
 	"time"
 )
 
-// GetNotesHandler handles getting all notes for a user
 func GetNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -38,7 +37,6 @@ func GetNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// CreateNoteHandler handles creating a new note
 func CreateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -65,7 +63,6 @@ func CreateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// GetNoteHandler handles getting a specific note
 func GetNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -92,7 +89,6 @@ func GetNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// UpdateNoteHandler handles updating a note
 func UpdateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -125,7 +121,6 @@ func UpdateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// DeleteNoteHandler handles deleting a note
 func DeleteNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -150,7 +145,6 @@ func DeleteNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// SearchNotesHandler handles searching notes for a user
 func SearchNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -177,7 +171,6 @@ func SearchNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// TogglePinHandler handles toggling the pinned state of a note
 func TogglePinHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -210,7 +203,6 @@ func TogglePinHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// ToggleArchiveHandler handles toggling the archived state of a note
 func ToggleArchiveHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -243,7 +235,6 @@ func ToggleArchiveHandler(noteService *services.NoteService) http.HandlerFunc {
 	}
 }
 
-// UpdateNotesOrderHandler handles updating the order of multiple notes
 func UpdateNotesOrderHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -268,7 +259,6 @@ func UpdateNotesOrderHandler(noteService *services.NoteService) http.HandlerFunc
 	}
 }
 
-// UploadImageHandler handles uploading images
 func UploadImageHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
@@ -277,8 +267,7 @@ func UploadImageHandler() http.HandlerFunc {
 			return
 		}
 
-		// Parse multipart form
-		err = r.ParseMultipartForm(10 << 20) // 10 MB
+		err = r.ParseMultipartForm(10 << 20)
 		if err != nil {
 			http.Error(w, "Failed to parse form", http.StatusBadRequest)
 			return
@@ -291,30 +280,19 @@ func UploadImageHandler() http.HandlerFunc {
 		}
 		defer file.Close()
 
-		// Validate file type
 		contentType := header.Header.Get("Content-Type")
 		if !strings.HasPrefix(contentType, "image/") {
 			http.Error(w, "Invalid file type", http.StatusBadRequest)
 			return
 		}
 
-		// Generate filename
 		ext := filepath.Ext(header.Filename)
 		if ext == "" {
-			ext = ".png" // default
+			ext = ".png"
 		}
 		filename := fmt.Sprintf("%d_%d%s", userID, time.Now().Unix(), ext)
-		filePath := path.Join(config.DataDirectoryPath, "uploads", filename)
+		filePath := path.Join(config.UploadsDirectory, filename)
 
-		// Create uploads directory if not exists
-		uploadsDir := path.Join(config.DataDirectoryPath, "uploads")
-		err = os.MkdirAll(uploadsDir, 0755)
-		if err != nil {
-			http.Error(w, "Failed to create directory", http.StatusInternalServerError)
-			return
-		}
-
-		// Save file
 		dst, err := os.Create(filePath)
 		if err != nil {
 			http.Error(w, "Failed to save file", http.StatusInternalServerError)
@@ -328,7 +306,6 @@ func UploadImageHandler() http.HandlerFunc {
 			return
 		}
 
-		// Return URL
 		url := fmt.Sprintf("/uploads/%s", filename)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

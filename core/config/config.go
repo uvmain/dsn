@@ -1,32 +1,37 @@
 package config
 
 import (
+	"cmp"
 	"log"
 	"os"
 	"path"
+
+	"github.com/joho/godotenv"
 )
 
 var Port string
 var JwtSecret string
 var DataDirectoryPath string
-var DatabasePath string
 var CorsBaseUrl string
+var DatabaseDirectory string
+var UploadsDirectory string
 
 func LoadConfig() {
+	godotenv.Load(".env")
+
 	Port = getEnv("PORT", "8080")
-	JwtSecret = getEnv("JWT_SECRET", "your-secret-key-change-this-in-production")
+	JwtSecret = getEnv("AUTH_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef")
 	DataDirectoryPath = getEnv("DATA_DIR_PATH", "./data")
-	DatabasePath = getEnv("DB_PATH", path.Join(DataDirectoryPath, "dsn.db"))
 	CorsBaseUrl = getEnv("CORS_BASE_URL", "*")
 
-	if JwtSecret == "your-secret-key-change-this-in-production" {
-		log.Println("Warning: Using default JWT secret. Set JWT_SECRET environment variable in production.")
+	if JwtSecret == "0123456789abcdef0123456789abcdef" {
+		log.Println("*** AUTH_ENCRYPTION_KEY environment variable is not set, using fallback key")
 	}
+
+	UploadsDirectory = path.Join(DataDirectoryPath, "uploads")
+	DatabaseDirectory = path.Join(DataDirectoryPath, "database")
 }
 
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
+func getEnv(environmentVariable, defaultValue string) string {
+	return cmp.Or(os.Getenv(environmentVariable), defaultValue)
 }

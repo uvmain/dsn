@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql"
-	"dsn/core/io"
+	"dsn/core/config"
 	"log"
 	"path/filepath"
 
@@ -10,10 +10,10 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-// Initialize creates and initializes the SQLite database
-func Initialize(dbPath string) (*sql.DB, error) {
-	io.CreateDirectoryIfNotExists(filepath.Dir(dbPath))
-	db, err := sql.Open("sqlite3", dbPath)
+func Initialize() (*sql.DB, error) {
+	databasePath := filepath.Join(config.DatabaseDirectory, "dsn.db")
+
+	db, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,6 @@ func Initialize(dbPath string) (*sql.DB, error) {
 }
 
 func createTables(db *sql.DB) error {
-	// Users table
 	usersTable := `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +42,6 @@ func createTables(db *sql.DB) error {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
-	// Notes table
 	notesTable := `
 	CREATE TABLE IF NOT EXISTS notes (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +57,6 @@ func createTables(db *sql.DB) error {
 		FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 	);`
 
-	// Tags table
 	tagsTable := `
 	CREATE TABLE IF NOT EXISTS tags (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +65,6 @@ func createTables(db *sql.DB) error {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
-	// Note tags junction table
 	noteTagsTable := `
 	CREATE TABLE IF NOT EXISTS note_tags (
 		note_id INTEGER NOT NULL,
@@ -78,7 +74,6 @@ func createTables(db *sql.DB) error {
 		FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
 	);`
 
-	// Execute table creation
 	tables := []string{usersTable, notesTable, tagsTable, noteTagsTable}
 	for _, table := range tables {
 		if _, err := db.Exec(table); err != nil {
@@ -86,7 +81,6 @@ func createTables(db *sql.DB) error {
 		}
 	}
 
-	// Create indexes
 	indexes := []string{
 		"CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);",
 		"CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);",

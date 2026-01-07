@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"dsn/core/config"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -22,9 +23,9 @@ type AuthService struct {
 	db        *sql.DB
 }
 
-func NewAuthService(secret string, db *sql.DB) *AuthService {
+func NewAuthService(db *sql.DB) *AuthService {
 	return &AuthService{
-		jwtSecret: []byte(secret),
+		jwtSecret: []byte(config.JwtSecret),
 		db:        db,
 	}
 }

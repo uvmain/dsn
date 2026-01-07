@@ -8,7 +8,6 @@ import (
 	"strconv"
 )
 
-// GetTagsHandler handles getting all tags
 func GetTagsHandler(tagService *services.TagService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tags, err := tagService.GetAll()
@@ -23,7 +22,6 @@ func GetTagsHandler(tagService *services.TagService) http.HandlerFunc {
 	}
 }
 
-// CreateTagHandler handles creating a new tag
 func CreateTagHandler(tagService *services.TagService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.CreateTagRequest
@@ -32,7 +30,6 @@ func CreateTagHandler(tagService *services.TagService) http.HandlerFunc {
 			return
 		}
 
-		// Basic validation
 		if req.Name == "" {
 			http.Error(w, "Tag name is required", http.StatusBadRequest)
 			return
@@ -50,7 +47,6 @@ func CreateTagHandler(tagService *services.TagService) http.HandlerFunc {
 	}
 }
 
-// UpdateTagHandler handles updating a tag
 func UpdateTagHandler(tagService *services.TagService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tagID, err := strconv.Atoi(r.PathValue("id"))
@@ -77,7 +73,6 @@ func UpdateTagHandler(tagService *services.TagService) http.HandlerFunc {
 	}
 }
 
-// DeleteTagHandler handles deleting a tag
 func DeleteTagHandler(tagService *services.TagService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tagID, err := strconv.Atoi(r.PathValue("id"))
@@ -96,7 +91,6 @@ func DeleteTagHandler(tagService *services.TagService) http.HandlerFunc {
 	}
 }
 
-// AssignTagToNoteHandler handles assigning a tag to a note
 func AssignTagToNoteHandler(tagService *services.TagService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		noteID, err := strconv.Atoi(r.PathValue("noteId"))
@@ -121,7 +115,6 @@ func AssignTagToNoteHandler(tagService *services.TagService) http.HandlerFunc {
 	}
 }
 
-// RemoveTagFromNoteHandler handles removing a tag from a note
 func RemoveTagFromNoteHandler(tagService *services.TagService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		noteID, err := strconv.Atoi(r.PathValue("noteId"))
@@ -146,7 +139,6 @@ func RemoveTagFromNoteHandler(tagService *services.TagService) http.HandlerFunc 
 	}
 }
 
-// SetNoteTagsHandler handles setting all tags for a note
 func SetNoteTagsHandler(tagService *services.TagService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		noteID, err := strconv.Atoi(r.PathValue("id"))

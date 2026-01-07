@@ -8,7 +8,6 @@ import (
 	"dsn/core/types"
 )
 
-// RegisterHandler handles user registration
 func RegisterHandler(userService *services.UserService, authService *services.AuthService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.CreateUserRequest
@@ -17,7 +16,6 @@ func RegisterHandler(userService *services.UserService, authService *services.Au
 			return
 		}
 
-		// Basic validation
 		if req.Username == "" || req.Email == "" || req.Password == "" {
 			http.Error(w, "Username, email, and password are required", http.StatusBadRequest)
 			return
@@ -29,14 +27,12 @@ func RegisterHandler(userService *services.UserService, authService *services.Au
 			return
 		}
 
-		// Generate token
 		token, err := authService.GenerateToken(user.ID, user.Username, user.IsAdmin)
 		if err != nil {
 			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 			return
 		}
 
-		// Set auth cookie
 		authService.SetAuthCookie(w, token)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -45,7 +41,6 @@ func RegisterHandler(userService *services.UserService, authService *services.Au
 	}
 }
 
-// LoginHandler handles user login
 func LoginHandler(userService *services.UserService, authService *services.AuthService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.LoginRequest
@@ -54,27 +49,23 @@ func LoginHandler(userService *services.UserService, authService *services.AuthS
 			return
 		}
 
-		// Get user by username
 		user, err := userService.GetByUsername(req.Username)
 		if err != nil {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
-		// Validate password
 		if !userService.ValidatePassword(user, req.Password) {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
-		// Generate token
 		token, err := authService.GenerateToken(user.ID, user.Username, user.IsAdmin)
 		if err != nil {
 			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 			return
 		}
 
-		// Set auth cookie
 		authService.SetAuthCookie(w, token)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -83,17 +74,15 @@ func LoginHandler(userService *services.UserService, authService *services.AuthS
 	}
 }
 
-// LogoutHandler handles user logout
 func LogoutHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Clear auth cookie
 		cookie := &http.Cookie{
 			Name:     "auth_token",
 			Value:    "",
 			Path:     "/",
 			MaxAge:   -1,
 			HttpOnly: true,
-			Secure:   false, // Set to true in production with HTTPS
+			Secure:   false,
 		}
 		http.SetCookie(w, cookie)
 
@@ -102,7 +91,6 @@ func LogoutHandler() http.HandlerFunc {
 	}
 }
 
-// CheckAuthHandler handles checking if user is authenticated
 func CheckAuthHandler(userService *services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := getUserIDFromRequest(r)
