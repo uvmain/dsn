@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"dsn/core/database"
 	"dsn/core/types"
 	"fmt"
 	"strings"
@@ -11,8 +12,8 @@ type NoteService struct {
 	db *sql.DB
 }
 
-func NewNoteService(db *sql.DB) *NoteService {
-	return &NoteService{db: db}
+func NewNoteService() *NoteService {
+	return &NoteService{db: database.DB}
 }
 
 func (s *NoteService) Create(userID int, req types.CreateNoteRequest) (*types.Note, error) {
@@ -61,7 +62,6 @@ func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
 		return nil, err
 	}
 
-	// Load tags
 	tags, err := s.getNoteTags(note.ID)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,6 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 			return nil, err
 		}
 
-		// Load tags for each note
 		tags, err := s.getNoteTags(note.ID)
 		if err != nil {
 			return nil, err
@@ -116,7 +115,6 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 }
 
 func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*types.Note, error) {
-	// Build dynamic update query
 	var setParts []string
 	var args []interface{}
 
@@ -176,14 +174,12 @@ func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*type
 }
 
 func (s *NoteService) UpdateOrder(userID int, noteOrders map[int]int) error {
-	// Begin transaction
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	// Update order for each note
 	for noteID, order := range noteOrders {
 		_, err := tx.Exec(`
 			UPDATE notes 
@@ -195,7 +191,6 @@ func (s *NoteService) UpdateOrder(userID int, noteOrders map[int]int) error {
 		}
 	}
 
-	// Commit transaction
 	return tx.Commit()
 }
 
@@ -244,7 +239,6 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 			return nil, err
 		}
 
-		// Load tags for each note
 		tags, err := s.getNoteTags(note.ID)
 		if err != nil {
 			return nil, err
@@ -330,7 +324,6 @@ func (s *NoteService) getNoteTags(noteID int) ([]types.Tag, error) {
 		tags = append(tags, tag)
 	}
 
-	// Check for iteration errors
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}

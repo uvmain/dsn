@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"dsn/core/config"
+	"dsn/core/database"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -23,10 +24,10 @@ type AuthService struct {
 	db        *sql.DB
 }
 
-func NewAuthService(db *sql.DB) *AuthService {
+func NewAuthService() *AuthService {
 	return &AuthService{
 		jwtSecret: []byte(config.JwtSecret),
-		db:        db,
+		db:        database.DB,
 	}
 }
 
@@ -81,7 +82,7 @@ func (s *AuthService) SetAuthCookie(w http.ResponseWriter, token string) {
 		Path:     "/",
 		MaxAge:   24 * 60 * 60,
 		HttpOnly: true,
-		Secure:   false, // Set to true in production with HTTPS
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 	}
 	http.SetCookie(w, cookie)
@@ -94,7 +95,7 @@ func (s *AuthService) ClearAuthCookie(w http.ResponseWriter) {
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   false, // Set to true in production with HTTPS
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 	}
 	http.SetCookie(w, cookie)

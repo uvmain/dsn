@@ -3,7 +3,6 @@
     "composite": true,
     "target": "es2022",
     "lib": ["es2023", "esnext", "DOM", "DOM.Iterable"],
-    "useDefineForClassFields": true,
     "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -13,7 +12,8 @@
     "resolveJsonModule": true,
     "types": [
       "node",
-      "vite/client"
+      "vite/client",
+      "unplugin-vue-router/client"
     ],
     "strict": true,
     "noEmit": true,
@@ -28,8 +28,7 @@
     "components.d.ts",
     "auto-imports.d.ts",
     "typed-router.d.ts",
-    "src/**/*",
-    "src/**/*.vue"
+    "src/**/*"
   ],
   "exclude": ["node_modules", "dist", "eslint.config.mjs"]
 }

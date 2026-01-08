@@ -4,21 +4,29 @@ import (
 	"net/http"
 	"strconv"
 
+	"dsn/core/config"
 	"dsn/core/services"
 )
 
 func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, err := authService.GetUserFromRequest(r)
-			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
+			if !config.NoAuthForUserZero {
+				claims, err := authService.GetUserFromRequest(r)
+				if err != nil {
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					return
+				}
 
-			r.Header.Set("X-User-ID", strconv.Itoa(claims.UserID))
-			r.Header.Set("X-Username", claims.Username)
-			r.Header.Set("X-Is-Admin", strconv.FormatBool(claims.IsAdmin))
+				r.Header.Set("X-User-ID", strconv.Itoa(claims.UserID))
+				r.Header.Set("X-Username", claims.Username)
+				r.Header.Set("X-Is-Admin", strconv.FormatBool(claims.IsAdmin))
+			} else {
+				// set default headers for no-auth mode
+				r.Header.Set("X-User-ID", "0")
+				r.Header.Set("X-Username", "noAuthUser")
+				r.Header.Set("X-Is-Admin", "true")
+			}
 
 			next.ServeHTTP(w, r)
 		})

@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"dsn/core/database"
 	"dsn/core/types"
 	"fmt"
 )
@@ -10,8 +11,8 @@ type TagService struct {
 	db *sql.DB
 }
 
-func NewTagService(db *sql.DB) *TagService {
-	return &TagService{db: db}
+func NewTagService() *TagService {
+	return &TagService{db: database.DB}
 }
 
 func (s *TagService) Create(req types.CreateTagRequest) (*types.Tag, error) {
@@ -81,7 +82,6 @@ func (s *TagService) GetByID(id int) (*types.Tag, error) {
 }
 
 func (s *TagService) Update(id int, req types.UpdateTagRequest) (*types.Tag, error) {
-	// Build dynamic update query
 	var setParts []string
 	var args []interface{}
 
@@ -175,20 +175,17 @@ func (s *TagService) RemoveFromNote(noteID, tagID int) error {
 }
 
 func (s *TagService) SetNoteTags(noteID int, tagIDs []int) error {
-	// Start transaction
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	// Remove all existing tags for this note
 	_, err = tx.Exec("DELETE FROM note_tags WHERE note_id = ?", noteID)
 	if err != nil {
 		return err
 	}
 
-	// Add new tags
 	for _, tagID := range tagIDs {
 		_, err = tx.Exec("INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)", noteID, tagID)
 		if err != nil {

@@ -1,99 +1,65 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"dsn/core/config"
+	"dsn/core/io"
+	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
-func Initialize() (*sql.DB, error) {
-	databasePath := filepath.Join(config.DatabaseDirectory, "dsn.db")
+var dbFile = "sqlite.db"
+var DB *sql.DB
+var err error
 
-	db, err := sql.Open("sqlite3", databasePath)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	if err := createTables(db); err != nil {
-		return nil, err
-	}
-
-	log.Println("Database initialized successfully")
-	return db, nil
+func Initialise(ctx context.Context) {
+	openDatabase(ctx)
+	createTables(ctx)
 }
 
-func createTables(db *sql.DB) error {
-	usersTable := `
-	CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE NOT NULL,
-		email TEXT UNIQUE NOT NULL,
-		password_hash TEXT NOT NULL,
-		is_admin BOOLEAN DEFAULT FALSE,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
+func openDatabase(ctx context.Context) {
+	dbFilePath := filepath.Join(config.DatabaseDirectory, dbFile)
 
-	notesTable := `
-	CREATE TABLE IF NOT EXISTS notes (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id INTEGER NOT NULL,
-		title TEXT NOT NULL DEFAULT '',
-		content TEXT NOT NULL DEFAULT '',
-		color TEXT DEFAULT '#ffffff',
-		pinned BOOLEAN DEFAULT FALSE,
-		archived BOOLEAN DEFAULT FALSE,
-		order_position INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-	);`
+	if io.FileExists(dbFilePath) {
+		log.Println("Database already exists")
+	} else {
+		log.Println("Creating new database file")
+	}
 
-	tagsTable := `
-	CREATE TABLE IF NOT EXISTS tags (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE NOT NULL,
-		color TEXT DEFAULT '#e0e0e0',
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
+	dataSource := fmt.Sprintf("file:%s?_journal_mode=WAL&_foreign_keys=on", dbFilePath)
+	var err error
+	DB, err = sql.Open("sqlite3", dataSource)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	DB.SetMaxIdleConns(5)
 
-	noteTagsTable := `
-	CREATE TABLE IF NOT EXISTS note_tags (
-		note_id INTEGER NOT NULL,
-		tag_id INTEGER NOT NULL,
-		PRIMARY KEY (note_id, tag_id),
-		FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE,
-		FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
-	);`
+	if err := DB.PingContext(ctx); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+}
 
-	tables := []string{usersTable, notesTable, tagsTable, noteTagsTable}
-	for _, table := range tables {
-		if _, err := db.Exec(table); err != nil {
-			return err
+func CleanShutdown() {
+	if DB != nil {
+		log.Println("Closing database...")
+		_, err = DB.Exec("PRAGMA wal_checkpoint(FULL);")
+		if err != nil {
+			log.Printf("Error committing WAL checkpoint on shutdown: %v", err)
 		}
-	}
+		DB.Close()
 
-	indexes := []string{
-		"CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);",
-		"CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);",
-		"CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned);",
-		"CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived);",
-		"CREATE INDEX IF NOT EXISTS idx_notes_order_position ON notes(order_position);",
-	}
-
-	for _, index := range indexes {
-		if _, err := db.Exec(index); err != nil {
-			return err
+		// wait for data to be flushed to disk
+		f, err := os.OpenFile(filepath.Join(config.DatabaseDirectory, dbFile), os.O_RDWR, 0660)
+		if err == nil {
+			f.Sync()
+			f.Close()
 		}
+		log.Println("Database closed.")
 	}
-
-	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"dsn/core/services"
 )
 
-// GetUsersHandler handles getting all users (admin only)
 func GetUsersHandler(userService *services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		isAdmin, err := getIsAdminFromRequest(r)
@@ -29,7 +28,6 @@ func GetUsersHandler(userService *services.UserService) http.HandlerFunc {
 	}
 }
 
-// DeleteUserHandler handles deleting a user (admin only)
 func DeleteUserHandler(userService *services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		isAdmin, err := getIsAdminFromRequest(r)

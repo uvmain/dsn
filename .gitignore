@@ -7,3 +7,4 @@ dsn
 dsn.exe
 tmp
 .DS_Store
+.env

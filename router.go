@@ -6,6 +6,7 @@ import (
 	"dsn/core/logic"
 	"dsn/core/services"
 	"embed"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -31,7 +32,7 @@ func init() {
 	}
 }
 
-func StartServer(userService *services.UserService, authService *services.AuthService, noteService *services.NoteService, tagService *services.TagService) {
+func StartServer(userService *services.UserService, authService *services.AuthService, noteService *services.NoteService, tagService *services.TagService) *http.Server {
 	mux := http.NewServeMux()
 
 	// auth routes
@@ -74,12 +75,25 @@ func StartServer(userService *services.UserService, authService *services.AuthSe
 	// frontend routes
 	mux.HandleFunc("/", handleFrontend)
 
-	handler := cors.AllowAll().Handler(
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{config.CorsBaseUrl},
+		AllowCredentials: true,
+		Debug:            false,
+	})
+
+	handler := c.Handler(
 		compress.Middleware(mux),
 	)
 
-	log.Printf("Server starting on port %s", config.Port)
-	log.Fatal(http.ListenAndServe(":"+config.Port, handler))
+	serverAddress := fmt.Sprintf(":%d", config.Port)
+
+	log.Printf("Application running at %s", serverAddress)
+
+	server := &http.Server{
+		Addr:    serverAddress,
+		Handler: handler,
+	}
+	return server
 }
 
 func handleFrontend(w http.ResponseWriter, r *http.Request) {

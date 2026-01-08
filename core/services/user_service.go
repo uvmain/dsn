@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"dsn/core/database"
 	"dsn/core/types"
 	"fmt"
 
@@ -12,8 +13,8 @@ type UserService struct {
 	db *sql.DB
 }
 
-func NewUserService(db *sql.DB) *UserService {
-	return &UserService{db: db}
+func NewUserService() *UserService {
+	return &UserService{db: database.DB}
 }
 
 func (s *UserService) Create(req types.CreateUserRequest) (*types.User, error) {
@@ -84,7 +85,6 @@ func (s *UserService) GetByID(id int) (*types.User, error) {
 	return &user, nil
 }
 
-// GetAll retrieves all users (admin only)
 func (s *UserService) GetAll() ([]types.User, error) {
 	query := `
 		SELECT id, username, email, is_admin, created_at, updated_at 
