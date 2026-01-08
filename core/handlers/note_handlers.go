@@ -18,6 +18,7 @@ import (
 
 func GetNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -25,7 +26,7 @@ func GetNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 		}
 
 		includeArchived := r.URL.Query().Get("archived") == "true"
-		notes, err := noteService.GetByUserID(userID, includeArchived)
+		notes, err := noteService.GetByUserID(ctx, userID, includeArchived)
 		if err != nil {
 			http.Error(w, "Failed to get notes", http.StatusInternalServerError)
 			return
@@ -39,6 +40,7 @@ func GetNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func CreateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -51,7 +53,7 @@ func CreateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 			return
 		}
 
-		note, err := noteService.Create(userID, req)
+		note, err := noteService.Create(ctx, userID, req)
 		if err != nil {
 			http.Error(w, "Failed to create note", http.StatusInternalServerError)
 			return
@@ -65,6 +67,7 @@ func CreateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func GetNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -77,7 +80,7 @@ func GetNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 			return
 		}
 
-		note, err := noteService.GetByID(noteID, userID)
+		note, err := noteService.GetByID(ctx, noteID, userID)
 		if err != nil {
 			http.Error(w, "Note not found", http.StatusNotFound)
 			return
@@ -91,6 +94,8 @@ func GetNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func UpdateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -109,7 +114,7 @@ func UpdateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 			return
 		}
 
-		note, err := noteService.Update(noteID, userID, req)
+		note, err := noteService.Update(ctx, noteID, userID, req)
 		if err != nil {
 			http.Error(w, "Failed to update note", http.StatusInternalServerError)
 			return
@@ -123,6 +128,7 @@ func UpdateNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func DeleteNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -135,7 +141,7 @@ func DeleteNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 			return
 		}
 
-		err = noteService.Delete(noteID, userID)
+		err = noteService.Delete(ctx, noteID, userID)
 		if err != nil {
 			http.Error(w, "Failed to delete note", http.StatusInternalServerError)
 			return
@@ -147,6 +153,7 @@ func DeleteNoteHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func SearchNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -159,7 +166,7 @@ func SearchNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 			return
 		}
 
-		notes, err := noteService.Search(userID, query)
+		notes, err := noteService.Search(ctx, userID, query)
 		if err != nil {
 			http.Error(w, "Failed to search notes", http.StatusInternalServerError)
 			return
@@ -173,6 +180,7 @@ func SearchNotesHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func TogglePinHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -191,7 +199,7 @@ func TogglePinHandler(noteService *services.NoteService) http.HandlerFunc {
 			return
 		}
 
-		note, err := noteService.TogglePin(noteID, userID, req.Pinned)
+		note, err := noteService.TogglePin(ctx, noteID, userID, req.Pinned)
 		if err != nil {
 			http.Error(w, "Failed to toggle pin status", http.StatusInternalServerError)
 			return
@@ -205,6 +213,7 @@ func TogglePinHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func ToggleArchiveHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -223,7 +232,7 @@ func ToggleArchiveHandler(noteService *services.NoteService) http.HandlerFunc {
 			return
 		}
 
-		note, err := noteService.ToggleArchive(noteID, userID, req.Archived)
+		note, err := noteService.ToggleArchive(ctx, noteID, userID, req.Archived)
 		if err != nil {
 			http.Error(w, "Failed to toggle archive status", http.StatusInternalServerError)
 			return
@@ -237,6 +246,7 @@ func ToggleArchiveHandler(noteService *services.NoteService) http.HandlerFunc {
 
 func UpdateNotesOrderHandler(noteService *services.NoteService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		userID, err := getUserIDFromRequest(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -249,7 +259,7 @@ func UpdateNotesOrderHandler(noteService *services.NoteService) http.HandlerFunc
 			return
 		}
 
-		err = noteService.UpdateOrder(userID, noteOrders)
+		err = noteService.UpdateOrder(ctx, userID, noteOrders)
 		if err != nil {
 			http.Error(w, "Failed to update note order", http.StatusInternalServerError)
 			return

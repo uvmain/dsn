@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"dsn/core/database"
 	"dsn/core/types"
@@ -16,7 +17,7 @@ func NewNoteService() *NoteService {
 	return &NoteService{db: database.DB}
 }
 
-func (s *NoteService) Create(userID int, req types.CreateNoteRequest) (*types.Note, error) {
+func (s *NoteService) Create(ctx context.Context, userID int, req types.CreateNoteRequest) (*types.Note, error) {
 	query := `
 		INSERT INTO notes (user_id, title, content, color, pinned, archived, order_position) 
 		VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -28,8 +29,11 @@ func (s *NoteService) Create(userID int, req types.CreateNoteRequest) (*types.No
 		color = "#ffffff"
 	}
 
+	var args []interface{}
+	args = append(args, userID, req.Title, req.Content, color, req.Pinned, req.Archived, req.Order)
+
 	var note types.Note
-	err := s.db.QueryRow(query, userID, req.Title, req.Content, color, req.Pinned, req.Archived, req.Order).
+	err := s.db.QueryRowContext(ctx, query, args...).
 		Scan(&note.ID, &note.CreatedAt, &note.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -46,7 +50,7 @@ func (s *NoteService) Create(userID int, req types.CreateNoteRequest) (*types.No
 	return &note, nil
 }
 
-func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
+func (s *NoteService) GetByID(ctx context.Context, id, userID int) (*types.Note, error) {
 	query := `
 		SELECT id, user_id, title, content, color, pinned, archived, order_position, created_at, updated_at 
 		FROM notes 
@@ -54,7 +58,7 @@ func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
 	`
 
 	var note types.Note
-	err := s.db.QueryRow(query, id, userID).Scan(
+	err := s.db.QueryRowContext(ctx, query, id, userID).Scan(
 		&note.ID, &note.UserID, &note.Title, &note.Content, &note.Color,
 		&note.Pinned, &note.Archived, &note.Order, &note.CreatedAt, &note.UpdatedAt,
 	)
@@ -62,7 +66,7 @@ func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
 		return nil, err
 	}
 
-	tags, err := s.getNoteTags(note.ID)
+	tags, err := s.getNoteTags(ctx, note.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +75,7 @@ func (s *NoteService) GetByID(id, userID int) (*types.Note, error) {
 	return &note, nil
 }
 
-func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Note, error) {
+func (s *NoteService) GetByUserID(ctx context.Context, userID int, includeArchived bool) ([]types.Note, error) {
 	query := `
 		SELECT id, user_id, title, content, color, pinned, archived, order_position, created_at, updated_at 
 		FROM notes 
@@ -85,7 +89,7 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 
 	query += " ORDER BY pinned DESC, order_position ASC, updated_at DESC"
 
-	rows, err := s.db.Query(query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +106,7 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 			return nil, err
 		}
 
-		tags, err := s.getNoteTags(note.ID)
+		tags, err := s.getNoteTags(ctx, note.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +118,7 @@ func (s *NoteService) GetByUserID(userID int, includeArchived bool) ([]types.Not
 	return notes, nil
 }
 
-func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*types.Note, error) {
+func (s *NoteService) Update(ctx context.Context, id, userID int, req types.UpdateNoteRequest) (*types.Note, error) {
 	var setParts []string
 	var args []interface{}
 
@@ -144,7 +148,7 @@ func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*type
 	}
 
 	if len(setParts) == 0 {
-		return s.GetByID(id, userID)
+		return s.GetByID(ctx, id, userID)
 	}
 
 	setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
@@ -156,7 +160,7 @@ func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*type
 		WHERE id = ? AND user_id = ?
 	`, strings.Join(setParts, ", "))
 
-	result, err := s.db.Exec(query, args...)
+	result, err := s.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,11 +174,11 @@ func (s *NoteService) Update(id, userID int, req types.UpdateNoteRequest) (*type
 		return nil, fmt.Errorf("note with id %d not found", id)
 	}
 
-	return s.GetByID(id, userID)
+	return s.GetByID(ctx, id, userID)
 }
 
-func (s *NoteService) UpdateOrder(userID int, noteOrders map[int]int) error {
-	tx, err := s.db.Begin()
+func (s *NoteService) UpdateOrder(ctx context.Context, userID int, noteOrders map[int]int) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -194,9 +198,9 @@ func (s *NoteService) UpdateOrder(userID int, noteOrders map[int]int) error {
 	return tx.Commit()
 }
 
-func (s *NoteService) Delete(id, userID int) error {
+func (s *NoteService) Delete(ctx context.Context, id, userID int) error {
 	query := "DELETE FROM notes WHERE id = ? AND user_id = ?"
-	result, err := s.db.Exec(query, id, userID)
+	result, err := s.db.ExecContext(ctx, query, id, userID)
 	if err != nil {
 		return err
 	}
@@ -213,7 +217,7 @@ func (s *NoteService) Delete(id, userID int) error {
 	return nil
 }
 
-func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
+func (s *NoteService) Search(ctx context.Context, userID int, query string) ([]types.Note, error) {
 	searchQuery := `
 		SELECT id, user_id, title, content, color, pinned, archived, order_position, created_at, updated_at 
 		FROM notes 
@@ -222,7 +226,7 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 	`
 
 	searchTerm := "%" + query + "%"
-	rows, err := s.db.Query(searchQuery, userID, searchTerm, searchTerm)
+	rows, err := s.db.QueryContext(ctx, searchQuery, userID, searchTerm, searchTerm)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +243,7 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 			return nil, err
 		}
 
-		tags, err := s.getNoteTags(note.ID)
+		tags, err := s.getNoteTags(ctx, note.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -251,14 +255,14 @@ func (s *NoteService) Search(userID int, query string) ([]types.Note, error) {
 	return notes, nil
 }
 
-func (s *NoteService) TogglePin(id, userID int, pinned bool) (*types.Note, error) {
+func (s *NoteService) TogglePin(ctx context.Context, id, userID int, pinned bool) (*types.Note, error) {
 	query := `
 		UPDATE notes 
 		SET pinned = ?, updated_at = CURRENT_TIMESTAMP 
 		WHERE id = ? AND user_id = ?
 	`
 
-	result, err := s.db.Exec(query, pinned, id, userID)
+	result, err := s.db.ExecContext(ctx, query, pinned, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -272,17 +276,17 @@ func (s *NoteService) TogglePin(id, userID int, pinned bool) (*types.Note, error
 		return nil, fmt.Errorf("note with id %d not found", id)
 	}
 
-	return s.GetByID(id, userID)
+	return s.GetByID(ctx, id, userID)
 }
 
-func (s *NoteService) ToggleArchive(id, userID int, archived bool) (*types.Note, error) {
+func (s *NoteService) ToggleArchive(ctx context.Context, id, userID int, archived bool) (*types.Note, error) {
 	query := `
 		UPDATE notes 
 		SET archived = ?, updated_at = CURRENT_TIMESTAMP 
 		WHERE id = ? AND user_id = ?
 	`
 
-	result, err := s.db.Exec(query, archived, id, userID)
+	result, err := s.db.ExecContext(ctx, query, archived, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -296,10 +300,10 @@ func (s *NoteService) ToggleArchive(id, userID int, archived bool) (*types.Note,
 		return nil, fmt.Errorf("note with id %d not found", id)
 	}
 
-	return s.GetByID(id, userID)
+	return s.GetByID(ctx, id, userID)
 }
 
-func (s *NoteService) getNoteTags(noteID int) ([]types.Tag, error) {
+func (s *NoteService) getNoteTags(ctx context.Context, noteID int) ([]types.Tag, error) {
 	query := `
 		SELECT t.id, t.name, t.color, t.created_at
 		FROM tags t
@@ -308,7 +312,7 @@ func (s *NoteService) getNoteTags(noteID int) ([]types.Tag, error) {
 		ORDER BY t.name
 	`
 
-	rows, err := s.db.Query(query, noteID)
+	rows, err := s.db.QueryContext(ctx, query, noteID)
 	if err != nil {
 		return nil, err
 	}
